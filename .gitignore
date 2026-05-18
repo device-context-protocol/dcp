@@ -24,6 +24,7 @@ htmlcov/
 *.synctex.gz
 *.toc
 docs/paper/main.pdf
+docs/paper/dcp-arxiv-*.tar.gz
 
 # Local MCP / Claude Desktop configs (user-specific paths and ports)
 .mcp.json

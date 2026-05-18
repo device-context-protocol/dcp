@@ -26,6 +26,27 @@ pdflatex main
 
 Output: `main.pdf`.
 
+## Submit to arXiv
+
+```powershell
+# Builds figures + paper + arXiv-ready tarball
+.\build-arxiv.ps1
+```
+
+Outputs `dcp-arxiv-vX.Y.Z.tar.gz` (~80 KB). Upload it at
+[arxiv.org/submit](https://arxiv.org/submit):
+
+- **Primary category:** `cs.NI` (Networking and Internet Architecture)
+- **Secondary (optional):** `cs.DC` (Distributed Computing) and/or `cs.LG`
+- **License:** arXiv non-exclusive license
+- **Title:** match the LaTeX `\title{}`
+- **Abstract:** copy from LaTeX `\begin{abstract}`
+
+arXiv will run pdflatex itself; the tarball already includes the precompiled
+`main.bbl` so the bibliography resolves on first pass.
+
+The tarball is `.gitignored` — regenerate before each upload.
+
 ## Before submitting to arXiv
 
 1. **Authors.** Replace `deeplethe` and the placeholder email. arXiv lets
