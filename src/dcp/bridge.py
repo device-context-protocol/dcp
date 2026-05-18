@@ -12,7 +12,7 @@ from typing import Any, Awaitable, Callable
 
 from dcp.manifest import Manifest
 from dcp.safety import SafetyError, check_call
-from dcp.tokens import Token, TokenError, verify as verify_token
+from dcp.tokens import Token, verify as verify_token
 from dcp.transports.base import Transport
 from dcp.wire import Frame, Kind
 

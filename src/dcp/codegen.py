@@ -12,7 +12,6 @@ from __future__ import annotations
 import hashlib
 import re
 from pathlib import Path
-from textwrap import dedent
 
 from dcp.manifest import Manifest
 from dcp.wire import intent_id
