@@ -1,0 +1,129 @@
+# Smart Panel manifest — for LILYGO T-Panel S3 (H720 CAN FD variant).
+#
+# Covers DCP v0.3 (piano + visual) and v0.4 (CAN bus orchestration) demos.
+# Intents marked v0.5 are stubbed; firmware will compile but return STATUS_DENIED
+# until you flash the v0.5 firmware build.
+#
+# Hardware mapping (pin_config.h):
+#   LCD backlight  : GPIO 14 (PWM)
+#   Buzzer/speaker : GPIO 19 (PWM, user-added — solder a piezo or amp+8Ω here)
+#   Touch INT      : GPIO 21
+#   CAN TX/RX      : GPIO 16/15  (TD501MCANFD transceiver)
+#   I2C            : GPIO 17/18  (CST3240 touch + XL9535 GPIO expander)
+
+dcp: 0.3
+device:
+  id:     smart-panel-01
+  model:  lilygo_t_panel_s3_h720
+  vendor: deeplethe
+
+intents:
+  # ─── v0.3 — visual + audio (no CAN needed) ───────────────────────
+
+  - name: set_backlight
+    params:
+      level: { type: float, unit: percent, range: [0, 100] }
+    capability: panel.write
+    idempotent: true
+    dry_run: true
+
+  - name: set_color
+    params:
+      r: { type: int, range: [0, 255] }
+      g: { type: int, range: [0, 255] }
+      b: { type: int, range: [0, 255] }
+    capability: panel.write
+    idempotent: true
+    dry_run: true
+
+  - name: display_text
+    params:
+      text:  { type: string }                       # ≤22 chars (CBOR subset)
+      line:  { type: int, range: [0, 9], default: 0 }
+      size:  { type: int, range: [1, 4], default: 2 }
+    capability: panel.write
+    idempotent: true
+
+  - name: clear_screen
+    capability: panel.write
+    idempotent: true
+
+  - name: play_tone
+    params:
+      freq:     { type: int, unit: hz, range: [50, 5000] }
+      duration: { type: duration, unit: ms, range: [10, 5000], default: 200 }
+    capability: panel.write
+    idempotent: false
+    dry_run: true
+
+  - name: play_score
+    # Encoded as MML-ish string for compactness:
+    #   "C4q E4q G4q C5h"  q=quarter h=half e=eighth s=sixteenth, suffix . dotted
+    # Bass voice in second field (optional polyphony).
+    params:
+      melody: { type: string }
+      bass:   { type: string, default: "" }
+      tempo:  { type: int, unit: bpm, range: [40, 240], default: 120 }
+      voice:  { type: string, default: "square" }   # square | triangle | sine
+    capability: panel.write
+    idempotent: false
+    dry_run: true
+
+  - name: stop_playback
+    capability: panel.write
+    idempotent: true
+
+  - name: read_touch
+    returns: { type: bool }
+    capability: panel.read
+
+  # ─── v0.4 — CAN bus orchestration ────────────────────────────────
+
+  - name: can_send
+    # Send a raw CAN frame on the bus. Used for direct device control
+    # (e.g. driving a CAN stepper-motor controller).
+    params:
+      id:        { type: int, range: [0, 536870911] }   # 29-bit extended OK
+      data_hex:  { type: string }                        # up to 16 hex chars = 8 bytes
+      extended:  { type: bool, default: false }
+    capability: can.write
+    idempotent: false
+    dry_run: true
+
+  - name: can_receive_last
+    # Returns the most recently received CAN frame.
+    returns: { type: string }   # "id=0x123 data=01020304"
+    capability: can.read
+
+  # ─── v0.5 — high-level CAN device shortcuts (stepper motor demo) ──
+
+  - name: move_motor
+    params:
+      angle:    { type: float, unit: degree, range: [-3600, 3600] }
+      speed:    { type: int, unit: rpm, range: [1, 300], default: 60 }
+      motor_id: { type: int, range: [1, 16], default: 1 }
+    capability: motor.write
+    idempotent: false
+    dry_run: true
+
+  - name: read_motor_position
+    params:
+      motor_id: { type: int, range: [1, 16], default: 1 }
+    returns: { type: float, unit: degree }
+    capability: motor.read
+
+events:
+  - name: touch_pressed
+    payload:
+      x:      { type: int, range: [0, 480] }
+      y:      { type: int, range: [0, 480] }
+      region: { type: string }     # "top", "bottom-left", "center" etc — semantic zones
+    capability: panel.read
+
+  - name: can_received
+    # Pushed when a CAN frame arrives. The Bridge fans out to subscribers
+    # with the right capability.
+    payload:
+      id:       { type: int, range: [0, 536870911] }
+      data_hex: { type: string }
+    capability: can.read
