@@ -145,12 +145,23 @@ automatically. The Bridge needs no code change.
 ## Quickstart
 
 ```bash
-pip install -e ".[mcp,serial,mqtt,ble,dev]"
-python examples/lamp_demo.py              # in-process bridge ↔ fake lamp
-pytest                                    # all tests
-dcp inspect examples/lamp_manifest.yaml   # parsed manifest summary
-dcp codegen examples/lamp_manifest.yaml -o /tmp/dcp_intents.h
+# As a user — install from PyPI:
+pip install "pydcp[mcp,serial]"            # or [mcp,serial,mqtt,ble] for all transports
+dcp inspect examples/lamp_manifest.yaml    # parsed manifest summary
+dcp serve   examples/lamp_manifest.yaml --simulator
 ```
+
+```bash
+# As a contributor — editable install from source:
+git clone https://github.com/device-context-protocol/dcp.git
+cd dcp
+pip install -e ".[mcp,serial,mqtt,ble,dev]"
+pytest                                     # all 88 tests
+python examples/lamp_demo.py               # in-process bridge ↔ fake lamp
+```
+
+The PyPI package is named `pydcp` (the bare `dcp` is squatted by an
+unrelated package). The import name is `dcp`. The protocol name is DCP.
 
 ### Run as an MCP server
 
