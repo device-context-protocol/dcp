@@ -1,0 +1,78 @@
+name: Bug report
+description: Report something that doesn't work
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a bug. Please fill in as much
+        as you can — vague reports tend to sit unhandled.
+
+  - type: input
+    id: dcp-version
+    attributes:
+      label: DCP version
+      placeholder: "0.2.0 (or `git describe`)"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: component
+    attributes:
+      label: Which component
+      multiple: true
+      options:
+        - Wire format / framing
+        - Bridge
+        - MCP server wrapper
+        - CLI
+        - UART transport
+        - MQTT transport
+        - BLE transport
+        - ESP32 firmware
+        - Codegen
+        - Manifest parser
+        - Docs / examples
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: Include the full error message and tracebacks.
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Minimal reproduction
+      description: Smallest possible commands or code that triggers it.
+      render: shell
+    validations:
+      required: true
+
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "Windows 11 · Python 3.13 · ESP32-WROOM (CH340)"
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I have searched existing issues
+          required: true
+        - label: This is not a security report (those go to SECURITY.md)
+          required: true

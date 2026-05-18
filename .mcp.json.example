@@ -1,0 +1,22 @@
+{
+  "_comment": "Copy this file to .mcp.json and edit the manifest path + serial port. Then restart Claude Code (or whatever MCP host) in this directory. The MCP host will spawn `dcp serve` and expose the lamp's intents as tools.",
+  "mcpServers": {
+    "dcp-lamp": {
+      "command": "dcp",
+      "args": [
+        "serve",
+        "examples/lamp_manifest.yaml",
+        "--simulator"
+      ]
+    },
+    "dcp-lamp-real-hardware-example": {
+      "command": "dcp",
+      "args": [
+        "serve",
+        "examples/lamp_manifest.yaml",
+        "--serial",
+        "COM5"
+      ]
+    }
+  }
+}

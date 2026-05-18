@@ -1,0 +1,55 @@
+name: Feature request
+description: Suggest a new capability or improvement
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        DCP is intentionally small. Features that move us toward
+        "real devices controlled by real LLMs" go to the top; features
+        that add abstraction without a concrete user wait.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve
+      description: Describe the user / scenario, not the proposed code.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed approach
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Including "do nothing".
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - Spec / wire format
+        - Bridge / Python lib
+        - CLI
+        - Firmware
+        - Docs
+        - Tooling / CI
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Pre-flight
+      options:
+        - label: I have read RATIONALE.md and this isn't already addressed
+          required: true
+        - label: I have searched existing issues
+          required: true

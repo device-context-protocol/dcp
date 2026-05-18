@@ -1,0 +1,355 @@
+"""Generate all figures for the DCP paper.
+
+Run with:
+    python make_figures.py
+
+Outputs both PDF (for LaTeX \\includegraphics) and PNG (for README/web)
+into the current directory.
+
+All numbers tagged "synthetic" are illustrative placeholders. They will be
+replaced with measured data after the hardware campaign described in §7.1
+of the paper.
+"""
+from __future__ import annotations
+
+import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
+from matplotlib.patches import FancyBboxPatch, FancyArrowPatch
+import numpy as np
+from pathlib import Path
+
+HERE = Path(__file__).parent
+
+# ---------------------------------------------------------------------------
+# Publication style.
+
+plt.rcParams.update({
+    "figure.dpi":        100,
+    "savefig.dpi":       300,
+    "savefig.bbox":      "tight",
+    "savefig.pad_inches": 0.05,
+    "font.family":       "serif",
+    "font.serif":        ["DejaVu Serif", "Liberation Serif", "Times New Roman"],
+    "font.size":         9,
+    "axes.titlesize":    10,
+    "axes.labelsize":    9,
+    "xtick.labelsize":   8,
+    "ytick.labelsize":   8,
+    "legend.fontsize":   8,
+    "lines.linewidth":   1.2,
+    "axes.spines.top":   False,
+    "axes.spines.right": False,
+    "axes.linewidth":    0.7,
+    "xtick.major.width": 0.7,
+    "ytick.major.width": 0.7,
+})
+
+# A muted, print-friendly palette. DCP gets the strongest navy.
+C = {
+    "dcp":     "#1f4e79",
+    "dcp_lt":  "#9fbedb",
+    "iotmcp":  "#c25450",
+    "rawmcp":  "#7fa17a",
+    "openapi": "#dfb96b",
+    "matter":  "#8c6a4f",
+    "bare":    "#888888",
+
+    "header":  "#1f4e79",
+    "cbor":    "#7fa17a",
+    "hmac":    "#c25450",
+    "framing": "#888888",
+    "json":    "#dfb96b",
+
+    "bridge_inner": "#eef3f8",
+    "bridge_outer": "#1f4e79",
+    "llm":          "#9fbedb",
+    "device":       "#f3d6ad",
+}
+
+
+def save(fig, name: str) -> None:
+    pdf = HERE / f"{name}.pdf"
+    png = HERE / f"{name}.png"
+    fig.savefig(pdf)
+    fig.savefig(png, dpi=200)
+    plt.close(fig)
+    print(f"  wrote {pdf.name}, {png.name}")
+
+
+# ---------------------------------------------------------------------------
+# Figure 1 — Architecture.
+
+def fig_architecture():
+    fig, ax = plt.subplots(figsize=(6.5, 3.0))
+    ax.set_xlim(0, 100); ax.set_ylim(0, 50); ax.axis("off")
+
+    def box(x, y, w, h, label, facecolor, edgecolor="black", text_color="black",
+            fontsize=9, rounded=0.02):
+        patch = FancyBboxPatch((x, y), w, h,
+                                boxstyle=f"round,pad=0.3,rounding_size={rounded}",
+                                linewidth=0.8,
+                                edgecolor=edgecolor,
+                                facecolor=facecolor)
+        ax.add_patch(patch)
+        ax.text(x + w / 2, y + h / 2, label,
+                ha="center", va="center",
+                fontsize=fontsize, color=text_color)
+
+    # LLM
+    box(2, 18, 16, 14, "LLM\n(MCP host)", C["llm"], fontsize=10)
+
+    # Bridge outer
+    box(28, 4, 42, 42, "", "#ffffff", edgecolor=C["bridge_outer"], rounded=1.5)
+    ax.text(28 + 21, 41, "Bridge (sole trust boundary)",
+            ha="center", va="bottom", fontsize=9, color=C["bridge_outer"],
+            fontweight="bold")
+
+    # Bridge inner components (2 x 2 grid)
+    inner_w, inner_h = 18, 9
+    cells = [
+        (31, 25, "Capability\ntoken verify"),
+        (51, 25, "Range / type\nchecks"),
+        (31, 10, "Dry-run\nevaluator"),
+        (51, 10, "Audit /\nrate-limit"),
+    ]
+    for x, y, label in cells:
+        box(x, y, inner_w, inner_h, label, C["bridge_inner"],
+            edgecolor=C["bridge_outer"], fontsize=8)
+
+    # Device
+    box(80, 18, 18, 14, "Device\n(<16 KB MCU)", C["device"], fontsize=10)
+
+    # Arrows.
+    def arrow(x1, y1, x2, y2, label, dy_label=2, color="black"):
+        ax.add_patch(FancyArrowPatch((x1, y1), (x2, y2),
+                                      arrowstyle="-|>", mutation_scale=10,
+                                      linewidth=1.0, color=color))
+        ax.text((x1 + x2) / 2, max(y1, y2) + dy_label, label,
+                ha="center", va="bottom", fontsize=8, color=color, style="italic")
+
+    arrow(18, 27, 28, 27, "MCP", dy_label=1)
+    arrow(28, 23, 18, 23, "results", dy_label=-3.5, color="#666666")
+    arrow(70, 27, 80, 27, "DCP wire", dy_label=1)
+    arrow(80, 23, 70, 23, "reply", dy_label=-3.5, color="#666666")
+
+    # Transport bullets under device
+    transports = "UART  ·  MQTT  ·  BLE  ·  USB-CDC"
+    ax.text(89, 12, transports, ha="center", va="center", fontsize=7,
+            color="#444444", style="italic")
+    ax.text(89, 8, "(one wire format,\nany transport)",
+            ha="center", va="center", fontsize=7, color="#888888")
+
+    save(fig, "arch")
+
+
+# ---------------------------------------------------------------------------
+# Figure 2 — Wire format and comparison to MCP JSON-RPC.
+
+def fig_wire_format():
+    fig = plt.figure(figsize=(6.5, 3.2))
+    gs = fig.add_gridspec(2, 1, height_ratios=[1.2, 1], hspace=0.55)
+
+    # Top: byte-level layout of a DCP frame.
+    ax1 = fig.add_subplot(gs[0])
+    ax1.set_xlim(0, 35); ax1.set_ylim(-0.4, 1.6); ax1.axis("off")
+
+    segments = [
+        (0,  1, "ver",   C["header"]),
+        (1,  1, "kind",  C["header"]),
+        (2,  2, "seq",   C["header"]),
+        (4,  2, "iid",   C["header"]),
+        (6, 13, "CBOR payload (variable)", C["cbor"]),
+        (19, 16, "optional HMAC-SHA256[:16]", C["hmac"]),
+    ]
+    for x, w, label, color in segments:
+        ax1.add_patch(mpatches.Rectangle((x, 0), w, 1,
+                                           facecolor=color,
+                                           edgecolor="white",
+                                           linewidth=1.0,
+                                           alpha=0.9))
+        ax1.text(x + w / 2, 0.5, label,
+                 ha="center", va="center",
+                 fontsize=8, color="white", fontweight="bold")
+        if w == 1 or w == 2:
+            ax1.text(x + w / 2, -0.15, f"{w} B",
+                     ha="center", va="top", fontsize=7, color="#444")
+
+    ax1.annotate("6-byte fixed header", xy=(3, 1.0), xytext=(3, 1.45),
+                 fontsize=8, color="#333", ha="center",
+                 arrowprops=dict(arrowstyle="-", linewidth=0.5, color="#777"))
+    ax1.annotate("CBOR map (RFC 8949)", xy=(12.5, 1.0), xytext=(12.5, 1.45),
+                 fontsize=8, color="#333", ha="center",
+                 arrowprops=dict(arrowstyle="-", linewidth=0.5, color="#777"))
+    ax1.annotate("opt. integrity", xy=(27, 1.0), xytext=(27, 1.45),
+                 fontsize=8, color="#333", ha="center",
+                 arrowprops=dict(arrowstyle="-", linewidth=0.5, color="#777"))
+    ax1.set_title("DCP frame layout", loc="left", pad=4, fontsize=10)
+
+    # Bottom: size comparison bars.
+    ax2 = fig.add_subplot(gs[1])
+    labels = [
+        "DCP (no HMAC)",
+        "DCP (+ HMAC)",
+        "CoAP + CBOR",
+        "MCP JSON-RPC",
+        "OpenAPI / HTTP",
+    ]
+    # Bytes per typical call: synthetic but representative.
+    sizes  = [19, 35, 30, 180, 320]
+    colors = [C["dcp"], C["dcp"], C["rawmcp"], C["json"], C["openapi"]]
+    bars = ax2.barh(labels, sizes, color=colors, edgecolor="white", linewidth=0.5)
+    bars[1].set_hatch("//"); bars[1].set_edgecolor(C["hmac"])
+    for bar, size in zip(bars, sizes):
+        ax2.text(bar.get_width() + 4, bar.get_y() + bar.get_height() / 2,
+                 f"{size} B",
+                 va="center", fontsize=8, color="#333")
+    ax2.set_xlabel("bytes on wire for a typical call (illustrative)")
+    ax2.invert_yaxis()
+    ax2.set_xlim(0, 380)
+    ax2.tick_params(axis="y", length=0)
+
+    save(fig, "wire_format")
+
+
+# ---------------------------------------------------------------------------
+# Figure 3 — Footprint comparison.
+
+def fig_footprint():
+    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.8))
+
+    protocols = ["DCP\n(target)", "IoT-MCP\n[ref]", "Direct\nMCP", "Matter\n(typical)"]
+    flash_kb  = [16, 74, 120, 256]
+    ram_kb    = [2,  18, 40,  80]
+    colors    = [C["dcp"], C["iotmcp"], C["rawmcp"], C["matter"]]
+
+    for ax, data, label, ymax in [
+        (axes[0], flash_kb, "Flash (KB)", 300),
+        (axes[1], ram_kb,   "RAM (KB)",   100),
+    ]:
+        bars = ax.bar(protocols, data, color=colors, edgecolor="white", linewidth=0.5)
+        bars[0].set_hatch("//"); bars[0].set_edgecolor("white")
+        for bar, val in zip(bars, data):
+            ax.text(bar.get_x() + bar.get_width() / 2,
+                    bar.get_height() + ymax * 0.02,
+                    f"{val}",
+                    ha="center", va="bottom", fontsize=8, color="#333")
+        ax.set_ylabel(label)
+        ax.set_ylim(0, ymax)
+        ax.tick_params(axis="x", length=0)
+
+    fig.suptitle("Reference-implementation memory footprint  (DCP target, others measured/typical)",
+                 fontsize=9.5, y=1.02)
+    fig.tight_layout()
+    save(fig, "footprint")
+
+
+# ---------------------------------------------------------------------------
+# Figure 4 — Hallucination rejection rate (the killer experiment).
+
+def fig_hallucination():
+    fig, ax = plt.subplots(figsize=(6.8, 3.4))
+
+    attacks = [
+        "Out-of-range\nvalue",
+        "Unit\nconfusion",
+        "Wrong\ntype",
+        "Unknown\nintent",
+        "Capability\nover-reach",
+        "Indirect\nprompt-injection",
+    ]
+    series = {
+        "DCP":     [100, 100, 100, 100, 100, 60],
+        "IoT-MCP": [60,   10,  95, 100,   0,  0],
+        "Raw MCP": [30,    5,  95, 100,   0,  0],
+        "OpenAPI": [70,    5, 100, 100,  50,  5],
+    }
+    colors = {"DCP": C["dcp"], "IoT-MCP": C["iotmcp"], "Raw MCP": C["rawmcp"], "OpenAPI": C["openapi"]}
+
+    x = np.arange(len(attacks))
+    width = 0.2
+    for i, (name, vals) in enumerate(series.items()):
+        offset = (i - 1.5) * width
+        bars = ax.bar(x + offset, vals, width=width, color=colors[name],
+                      label=name, edgecolor="white", linewidth=0.4)
+        for bar, v in zip(bars, vals):
+            if v > 0:
+                ax.text(bar.get_x() + bar.get_width() / 2, v + 1.5,
+                        f"{v}",
+                        ha="center", va="bottom", fontsize=6.5, color="#333")
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(attacks, fontsize=8)
+    ax.set_ylabel("% of malformed/adversarial calls rejected\nbefore reaching device")
+    ax.set_ylim(0, 115)
+    ax.set_yticks([0, 25, 50, 75, 100])
+    ax.legend(loc="upper right", frameon=False, ncol=4, bbox_to_anchor=(1.0, 1.13))
+    ax.grid(axis="y", linewidth=0.4, alpha=0.5)
+    ax.set_axisbelow(True)
+    ax.text(-0.7, -25,
+            "Synthetic data for illustration. Values reflect what each protocol's "
+            "schema is expressive enough to reject at the host before any byte\n"
+            "reaches the device; they do not account for hand-written application code "
+            "that any of these protocols may layer on top.",
+            fontsize=7, color="#666", style="italic")
+    fig.tight_layout()
+    save(fig, "hallucination")
+
+
+# ---------------------------------------------------------------------------
+# Figure 5 — End-to-end latency by transport (illustrative).
+
+def fig_latency():
+    fig, ax = plt.subplots(figsize=(6.5, 2.6))
+
+    transports = ["DCP\nloopback", "DCP\nUART 115200", "DCP\nMQTT (LAN)", "DCP\nBLE", "IoT-MCP\n[ref]"]
+    encode  = [0.3, 0.6,  1.0, 1.0, 3.0]
+    wire    = [0.0, 6.0,  3.0, 12.0, 12.0]
+    decode  = [0.4, 0.7,  0.8, 0.8, 4.0]
+    handler = [0.5, 0.5,  0.5, 0.5, 1.0]
+    response_wire = [0.0, 4.0, 2.5, 8.0, 10.0]
+    response_decode = [0.3, 0.6, 0.7, 0.7, 3.0]
+
+    layers = [
+        ("encode",          encode,          C["dcp_lt"]),
+        ("wire out",        wire,            C["dcp"]),
+        ("device decode",   decode,          C["rawmcp"]),
+        ("handler",         handler,         C["openapi"]),
+        ("wire back",       response_wire,   C["matter"]),
+        ("host decode",     response_decode, "#bbbbbb"),
+    ]
+
+    bottom = np.zeros(len(transports))
+    for name, vals, color in layers:
+        ax.bar(transports, vals, bottom=bottom, color=color, label=name,
+               edgecolor="white", linewidth=0.4, width=0.55)
+        bottom += np.array(vals)
+
+    for i, total in enumerate(bottom):
+        ax.text(i, total + 0.8, f"{total:.1f} ms",
+                ha="center", va="bottom", fontsize=8, color="#333", fontweight="bold")
+
+    ax.set_ylabel("end-to-end latency (ms)")
+    ax.set_ylim(0, max(bottom) * 1.18)
+    ax.legend(loc="upper left", frameon=False, ncol=3, fontsize=7,
+              bbox_to_anchor=(0.0, 1.15))
+    ax.tick_params(axis="x", length=0)
+    ax.set_title("End-to-end call latency, broken down (illustrative)",
+                 loc="left", pad=18, fontsize=10)
+    save(fig, "latency")
+
+
+# ---------------------------------------------------------------------------
+# Driver.
+
+def main():
+    print("Generating figures to", HERE)
+    fig_architecture()
+    fig_wire_format()
+    fig_footprint()
+    fig_hallucination()
+    fig_latency()
+    print("Done.")
+
+
+if __name__ == "__main__":
+    main()

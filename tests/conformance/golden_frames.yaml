@@ -1,0 +1,75 @@
+# DCP v0.1 conformance golden frames.
+#
+# Each test case fully specifies a frame; the test runner builds the on-wire
+# bytes as:
+#
+#   header  = ver(0x01) || kind || seq_be || crc16_ccitt(intent)
+#   frame   = header || cbor_hex_bytes
+#   uart    = cobs_encode(frame || crc16_ccitt(frame).bytes_be) || 0x00
+#
+# Implementations should also be able to decode `cbor_hex` into the `payload`
+# (or accept an empty body as an empty map, per the wire-format rules).
+
+- name: empty call (no body)
+  kind: 0x01
+  seq: 1
+  intent: "ping"
+  payload: {}
+  cbor_hex: ""
+
+- name: empty call with explicit CBOR empty map
+  kind: 0x01
+  seq: 2
+  intent: "ping"
+  payload: {}
+  cbor_hex: "a0"
+
+- name: reply, one float
+  kind: 0x02
+  seq: 7
+  intent: "read_brightness"
+  payload:
+    value: 0.0
+  cbor_hex: "a1 65 76 61 6c 75 65 fb 00 00 00 00 00 00 00 00"
+
+- name: dry-run call with one float
+  kind: 0x81
+  seq: 99
+  intent: "set_brightness"
+  payload:
+    level: 50.0
+  cbor_hex: "a1 65 6c 65 76 65 6c fb 40 49 00 00 00 00 00 00"
+
+- name: error, status=unknown_intent
+  kind: 0x04
+  seq: 12
+  intent: "unknown"
+  payload:
+    status: 4
+  cbor_hex: "a1 66 73 74 61 74 75 73 04"
+
+- name: event with float payload
+  kind: 0x03
+  seq: 0
+  intent: "motion_detected"
+  payload:
+    confidence: 1.0
+  cbor_hex: "a1 6a 63 6f 6e 66 69 64 65 6e 63 65 fb 3f f0 00 00 00 00 00 00"
+
+- name: call with three small ints
+  kind: 0x01
+  seq: 0x1234
+  intent: "set_color"
+  payload:
+    r: 255
+    g: 100
+    b: 0
+  cbor_hex: "a3 61 72 18 ff 61 67 18 64 61 62 00"
+
+- name: reply with bool
+  kind: 0x02
+  seq: 5
+  intent: "read_enabled"
+  payload:
+    value: true
+  cbor_hex: "a1 65 76 61 6c 75 65 f5"

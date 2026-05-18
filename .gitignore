@@ -1,0 +1,37 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.venv/
+venv/
+dist/
+build/
+*.egg
+.coverage
+htmlcov/
+.mypy_cache/
+.DS_Store
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.toc
+docs/paper/main.pdf
+
+# Local MCP / Claude Desktop configs (user-specific paths and ports)
+.mcp.json
+**/claude_desktop_config.json.bak-dcp
+
+# Node / Vite (site)
+node_modules/
+.vite/
+
+# Tools install dir created by Arduino CLI setup
+**/dcp-tools/

@@ -1,0 +1,33 @@
+dcp: 0.1
+device:
+  id: lamp-kitchen-01
+  model: smart_lamp_v1
+  vendor: example.dev
+
+intents:
+  - name: set_brightness
+    params:
+      level: { type: float, unit: percent, range: [0, 100] }
+      fade:  { type: duration, unit: ms, default: 0 }
+    capability: lamp.write
+    idempotent: true
+    dry_run: true
+
+  - name: set_color
+    params:
+      r: { type: int, range: [0, 255] }
+      g: { type: int, range: [0, 255] }
+      b: { type: int, range: [0, 255] }
+    capability: lamp.write
+    idempotent: true
+    dry_run: true
+
+  - name: read_brightness
+    returns: { type: float, unit: percent }
+    capability: lamp.read
+
+events:
+  - name: motion_detected
+    payload:
+      confidence: { type: float, unit: ratio, range: [0, 1] }
+    capability: lamp.read

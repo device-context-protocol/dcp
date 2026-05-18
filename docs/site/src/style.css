@@ -1,0 +1,102 @@
+@import "tailwindcss";
+
+/* ───────────────────────────────────────────────────────────────────
+   Tailwind v4 design tokens. Anything declared in @theme becomes a
+   first-class utility — e.g. `--color-brand` ⇒ `bg-brand text-brand
+   border-brand`. Keep this list intentional; bloat here bloats the
+   generated CSS.
+   ──────────────────────────────────────────────────────────────── */
+@theme {
+  --color-ink:         #0f172a;
+  --color-ink-soft:    #475569;
+  --color-muted:       #64748b;
+  --color-border:      #e5e7eb;
+  --color-haze:        #f7f8fa;
+  --color-deep:        #0f1d2e;
+
+  --color-brand:       #1f4e79;
+  --color-brand-dark:  #163a5c;
+  --color-brand-light: #2d6ba5;
+  --color-brand-tint:  #9fbedb;
+
+  --color-accent:      #c25450;
+  --color-good:        #15803d;
+  --color-bad:         #b91c1c;
+
+  --color-code-bg:     #0f1d2e;
+  --color-code-text:   #e2e8f0;
+  --color-code-key:    #93c5fd;
+  --color-code-str:    #86efac;
+  --color-code-com:    #94a3b8;
+
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Monaco, monospace;
+}
+
+/* ──────────────────────────────────────── base */
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem;
+}
+
+body {
+  font-family: var(--font-sans);
+  color: var(--color-ink);
+  background: white;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ──────────────────────────────────────── components */
+@layer components {
+  .container-page {
+    max-width: 1080px;
+    margin-inline: auto;
+    padding-inline: 1.75rem;
+  }
+
+  .btn {
+    @apply inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-[14.5px] font-medium transition-colors;
+  }
+  .btn-primary {
+    @apply bg-ink text-white hover:bg-brand;
+  }
+  .btn-secondary {
+    @apply bg-white text-ink border border-border hover:border-ink;
+  }
+
+  .code-card {
+    background: var(--color-code-bg);
+    color: var(--color-code-text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    line-height: 1.65;
+    padding: 1.125rem 1.375rem;
+    border-radius: 10px;
+    overflow-x: auto;
+  }
+  .code-card .com    { color: var(--color-code-com); font-style: italic; }
+  .code-card .key    { color: var(--color-code-key); }
+  .code-card .str    { color: var(--color-code-str); }
+  .code-card .prompt { color: var(--color-code-com); }
+  .code-card .cmd    { color: var(--color-code-key); }
+
+  .feature-card {
+    @apply p-7 rounded-[10px] bg-white border border-border transition-all;
+  }
+  .feature-card:hover {
+    @apply -translate-y-0.5 shadow-md;
+    border-color: #cdd5e0;
+  }
+
+  .kbd {
+    @apply font-mono text-[12.5px] bg-haze px-1.5 py-[1.5px] rounded border border-border;
+  }
+}
+
+/* ──────────────────────────────────────── small utility */
+.dot-divider::before {
+  content: " · ";
+  color: var(--color-muted);
+  margin: 0 0.35rem;
+}
