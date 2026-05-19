@@ -56,17 +56,12 @@ out of the box. DCP is the last mile to physical hardware.
 
 ![DCP architecture](docs/paper/figures/arch.png)
 
-```
-LLM ── MCP ──▶ Bridge ── DCP wire ──▶ Device(s)
-                 │
-                 ├─ issues capability tokens
-                 ├─ enforces rate limits, ranges
-                 └─ logs, dry-runs, undo
-```
-
-The Bridge is the sole trust boundary. Devices remain simple enough to
-fit on commodity microcontrollers; everything the LLM is allowed to do
-is enforced before any byte traverses the device boundary.
+The Bridge is the sole trust boundary. On every call it issues and
+verifies capability tokens, enforces range/type/unit checks from the
+manifest, and supports dry-run as a wire-format primitive. Devices
+remain simple enough to fit on commodity microcontrollers; everything
+the LLM is allowed to do is enforced before any byte traverses the
+device boundary.
 
 ## Validated on real hardware
 
