@@ -43,6 +43,13 @@ DCP keeps MCP's mental model (manifest + tool calls) but:
 A reference Bridge translates **DCP ↔ MCP**, so any MCP-compatible LLM works
 out of the box. DCP is the last mile to physical hardware.
 
+![Coverage of LLM-induced failure modes by each protocol's schema-level defenses](docs/paper/figures/hallucination.png)
+
+*Why this matters in one chart: the protocol's schema decides how many
+hallucinated or adversarial calls are stopped before any byte reaches a
+device. DCP catches all six categories at the wire layer; the others
+catch what their existing schema happens to cover.*
+
 ## Design principles
 
 1. **Intent, not register.** `set_brightness(50%)`, not `write_pwm(pin=5, duty=128)`.
@@ -74,13 +81,19 @@ ESP32-WROOM-32 dev board** over CH340 USB-Serial at 115 200 baud:
 - The pure DCP layer is approximately 14 KB over a baseline empty
   sketch (measurement script in `docs/paper/figures/`)
 
+![Memory footprint: DCP target vs IoT-MCP measured vs Direct MCP vs Matter](docs/paper/figures/footprint.png)
+
+*DCP design target sits roughly 5× under IoT-MCP and 20× under Matter on
+the same class of MCU. Hatched bars are design targets, plain bars are
+measured / typical of the cited sources.*
+
 See [docs/RATIONALE.md §7](docs/RATIONALE.md) for what the hardware
 validation does and does not prove.
 
 ## Manifest
 
 ```yaml
-dcp: 0.1
+dcp: 0.3
 device:
   id:     lamp-kitchen-01
   model:  smart_lamp_v1
@@ -111,23 +124,24 @@ coordination.
 
 ## Wire format
 
-A single frame:
+![DCP frame layout + on-wire size comparison](docs/paper/figures/wire_format.png)
 
-```
-┌────────┬────────┬────────┬─────────────┬───────┐
-│ ver:u8 │ kind:u8│ seq:u16│ intent_id:u16│ cbor  │
-└────────┴────────┴────────┴─────────────┴───────┘
-```
+A frame is a 6-byte fixed header + CBOR payload + an optional 16-byte
+truncated HMAC-SHA256. Header fields:
 
 | field       | meaning                                                          |
 |-------------|------------------------------------------------------------------|
-| `ver`       | 1 for v0.1                                                       |
+| `ver`       | 1 in v0.3                                                        |
 | `kind`      | 0x01 call · 0x02 reply · 0x03 event · 0x04 error · 0x81 dry-run |
 | `seq`       | client-chosen, echoed in reply                                   |
 | `intent_id` | CRC-16/CCITT of intent name                                      |
 | `cbor`      | CBOR map: params / return / event payload / error                |
 
 Reply status codes: `ok`, `denied`, `range`, `busy`, `unknown_intent`, `capability_required`.
+
+A typical `set_brightness(50)` call is 19 bytes on the wire; the MCP
+JSON-RPC equivalent is approximately 180 bytes. The full normative spec
+lives at [SPEC.md](SPEC.md).
 
 ## Adding a feature
 
@@ -215,13 +229,14 @@ Claude ─MCP─▶ dcp serve ─Bridge─▶ Loopback ─DCP wire─▶ Generic
 For production use, replace ``GenericSimulator`` with a real transport
 (UART / MQTT / BLE — coming next).
 
-## What's *not* in v0.1 (intentional)
+## What's *not* in v0.3 (intentional)
 
-- Multi-device transactions
+- Multi-device atomic transactions
 - Firmware OTA
-- Mesh routing
-- LLM authentication (Bridge's problem)
-- Capability token signing (stubbed — see `safety.py`)
+- Mesh routing (use Thread / Zigbee underneath if you need it)
+- LLM-side authentication (delegated to the MCP host's session model)
+- Native CAN FD frames (ESP32-S3 TWAI is classic CAN; v0.4 ESP32-P4
+  port enables true CAN FD)
 
 ## License
 
@@ -249,5 +264,9 @@ MIT.
 - [x] Conformance test suite (golden frames, language-neutral YAML)
 - [x] Codegen `--stubs`: emits handler signatures + binding table
 - [x] Quickstart video script ([docs/QUICKSTART_VIDEO.md](docs/QUICKSTART_VIDEO.md))
-- [ ] Real-hardware UART validation (waiting on ESP32+CH340 board)
-- [ ] Public launch under `device-context-protocol` GitHub org
+- [x] Real-hardware UART validation (ESP32-WROOM-32, 10/10 round-trips)
+- [x] Public repo at `device-context-protocol/dcp` (v0.3.0 released)
+- [x] PyPI release (`pip install pydcp`)
+- [ ] T-Panel S3 + CAN bus demo (firmware ready, awaiting hardware)
+- [ ] LLM-driven hallucination-rejection benchmark (planned for v0.4 paper)
+- [ ] ESP32-P4 port for native CAN FD
