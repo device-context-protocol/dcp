@@ -5,19 +5,45 @@
 //     dcp serve examples/lamp_manifest.yaml --serial COM3   (Windows)
 //     dcp serve examples/lamp_manifest.yaml --serial /dev/ttyUSB0   (Linux)
 //
-// Hardware: any ESP32 dev board. The built-in LED is on GPIO 2 on most
-// WROOM-32 dev kits (DOIT, NodeMCU-32, etc.). If your board has it on a
-// different pin, change LED_PIN below.
+// Hardware: any ESP32 dev board or ESP8266 (NodeMCU / Wemos D1). The
+// built-in LED is on GPIO 2 on most WROOM-32 dev kits. On ESP8266 the
+// onboard LED is usually GPIO 2 as well but ACTIVE-LOW — flip the duty
+// inversion below if your board has a different scheme.
 //
-// Requires Arduino-ESP32 core 3.0 or newer (uses the v3 LEDC API). For
-// core 2.x replace the ledcAttach/ledcWrite calls with the old
-// ledcSetup + ledcAttachPin + ledcWrite(channel, duty) sequence.
+// PWM API:
+//   ESP32:   Arduino-ESP32 core 3.x v3 LEDC API (ledcAttach / ledcWrite)
+//   ESP8266: stock analogWrite() (range remapped to 0..255 to match)
+//
+// All other DCP code paths are platform-independent.
 
 #include "DCP.h"
 
 constexpr int LED_PIN     = 2;       // built-in LED on most WROOM-32 dev boards
 constexpr int PWM_FREQ_HZ = 5000;
 constexpr int PWM_BITS    = 8;
+constexpr int PWM_MAX     = (1 << PWM_BITS) - 1;     // 255
+
+static inline void lamp_pwm_setup() {
+#if defined(ESP32)
+    ledcAttach(LED_PIN, PWM_FREQ_HZ, PWM_BITS);      // core 3.x v3 API
+#elif defined(ESP8266)
+    analogWriteFreq(PWM_FREQ_HZ);
+    analogWriteRange(PWM_MAX);
+    pinMode(LED_PIN, OUTPUT);
+#else
+    pinMode(LED_PIN, OUTPUT);                        // fallback: digital only
+#endif
+}
+
+static inline void lamp_pwm_write(uint32_t duty) {
+#if defined(ESP32)
+    ledcWrite(LED_PIN, duty);
+#elif defined(ESP8266)
+    analogWrite(LED_PIN, duty);
+#else
+    digitalWrite(LED_PIN, duty > (PWM_MAX / 2) ? HIGH : LOW);
+#endif
+}
 
 static float g_brightness = 0.0f;
 static uint8_t g_r = 255, g_g = 255, g_b = 255;   // current target RGB (no real LED bound)
@@ -47,7 +73,7 @@ static dcp::Status handle_set_brightness(uint8_t kind,
 
     g_brightness = (float)level;
     uint32_t duty = (uint32_t)(g_brightness * 2.55f);
-    ledcWrite(LED_PIN, duty);     // v3 API: pin, not channel
+    lamp_pwm_write(duty);
     return dcp::STATUS_OK;
 }
 
@@ -86,9 +112,9 @@ static dcp::Status handle_set_color(uint8_t kind,
     // The default WROOM-32 dev board has no RGB LED. We acknowledge by giving
     // a visible 80ms flash on the built-in brightness LED, then restoring it.
     uint32_t saved = (uint32_t)(g_brightness * 2.55f);
-    ledcWrite(LED_PIN, 255); delay(80);
-    ledcWrite(LED_PIN, 0);   delay(80);
-    ledcWrite(LED_PIN, saved);
+    lamp_pwm_write(255); delay(80);
+    lamp_pwm_write(0);   delay(80);
+    lamp_pwm_write(saved);
     return dcp::STATUS_OK;
 }
 
@@ -123,10 +149,10 @@ static dcp::Status handle_blink(uint8_t kind,
     // Save current brightness so we can restore it after the blink.
     uint32_t saved = (uint32_t)(g_brightness * 2.55f);
     for (int64_t i = 0; i < times; ++i) {
-        ledcWrite(LED_PIN, 255);        delay(period);
-        ledcWrite(LED_PIN, 0);          delay(period);
+        lamp_pwm_write(255);        delay(period);
+        lamp_pwm_write(0);          delay(period);
     }
-    ledcWrite(LED_PIN, saved);
+    lamp_pwm_write(saved);
     return dcp::STATUS_OK;
 }
 
@@ -144,7 +170,7 @@ static dcp::DCP* dcp_instance = nullptr;
 void setup() {
     Serial.begin(115200);
 
-    ledcAttach(LED_PIN, PWM_FREQ_HZ, PWM_BITS);   // v3 API: pin + freq + resolution
+    lamp_pwm_setup();
 
     static dcp::DCP instance(Serial, bindings, sizeof(bindings) / sizeof(bindings[0]));
     dcp_instance = &instance;

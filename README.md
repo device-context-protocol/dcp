@@ -90,12 +90,12 @@ measured / typical of the cited sources.*
 See [docs/RATIONALE.md §7](docs/RATIONALE.md) for what the hardware
 validation does and does not prove.
 
-### Cross-compile clean on the ESP32 RISC-V family
+### Cross-compile clean across the ESP family (Xtensa + RISC-V + ESP8266)
 
 The reference firmware is portable by design (Arduino `Stream` + a
-software SHA-256, no Xtensa-specific code paths). It cross-compiles
-unchanged for every RISC-V ESP32 variant, with end-to-end UART
-validation pending boards on the bench:
+software SHA-256, no SoC-specific code paths in `DCP.{h,cpp}`). It
+cross-compiles for every current ESP32 variant *and* for ESP8266,
+with end-to-end UART validation pending boards on the bench:
 
 | Target            | ISA                   | Flash (lamp+blink) | Globals  | Status        |
 |-------------------|-----------------------|--------------------|----------|---------------|
@@ -104,12 +104,18 @@ validation pending boards on the bench:
 | ESP32-C6          | RV32IMAC + HW-crypto  | 266 KB             | 14.0 KB  | builds ✓      |
 | ESP32-H2          | RV32IMAC + 802.15.4   | 292 KB             | 14.0 KB  | builds ✓      |
 | ESP32-P4          | RV32IMAFC dual-core   | 326 KB             | 22.0 KB  | builds ✓      |
+| ESP8266 NodeMCU   | Xtensa LX106 (legacy) | 242 KB             | 28.9 KB  | builds ✓      |
 
-All builds use Arduino-ESP32 core 3.3.8 + the same
-`firmware/esp32/` library, zero conditionals. Reproduce with:
+All builds use Arduino-ESP32 core 3.3.8 / Arduino-ESP8266 core 3.x
++ the same `firmware/esp32/` library. The sketch picks PWM API at
+compile time (`ledcAttach`/`ledcWrite` on ESP32, `analogWrite` on
+ESP8266); the protocol layer itself has no `#ifdef`. Reproduce
+with:
 
 ```bash
 arduino-cli compile --clean --fqbn esp32:esp32:esp32c3 \
+    --library firmware/esp32 firmware/esp32/examples/lamp
+arduino-cli compile --clean --fqbn esp8266:esp8266:nodemcuv2 \
     --library firmware/esp32 firmware/esp32/examples/lamp
 ```
 
@@ -288,7 +294,7 @@ MIT.
 - [x] Codegen `--stubs`: emits handler signatures + binding table
 - [x] Quickstart video script ([docs/QUICKSTART_VIDEO.md](docs/QUICKSTART_VIDEO.md))
 - [x] Real-hardware UART validation (ESP32-WROOM-32, 13/13 round-trips)
-- [x] Cross-compile clean on ESP32 RISC-V family (C3, C6, H2, P4)
+- [x] Cross-compile clean on ESP32 RISC-V family (C3, C6, H2, P4) and ESP8266
 - [x] Public repo at `device-context-protocol/dcp` (v0.3.0 released)
 - [x] PyPI release (`pip install pydcp`)
 - [ ] T-Panel S3 + CAN bus demo (firmware ready, awaiting hardware)
