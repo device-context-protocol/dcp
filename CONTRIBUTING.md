@@ -47,6 +47,36 @@ that fail CI will be asked to fix it before review.
 - Public APIs need docstrings; private helpers usually don't.
 - Tests live in `tests/`, named `test_*.py`.
 
+## Branching
+
+We use a three-branch convention.
+
+- **`main`** — release-grade. Protected: every change lands via PR,
+  history stays linear (rebase + squash, no merge commits), force
+  push and deletion are disabled.
+- **`dev`** — integration. Protected against force push and deletion
+  but accepts direct pushes from maintainers for fast iteration. CI
+  runs the same checks here as on `main`.
+- **`feat/<short-name>`** — feature branches. Cut from `dev`, push
+  freely, rebase as needed, and open a PR to `dev` when done. Delete
+  after merge. No GitHub-side protection; the prefix is a documented
+  convention, not an enforced rule.
+
+Typical loop:
+
+```bash
+git checkout dev && git pull
+git checkout -b feat/add-coap-transport
+# ... work, commit, push as many times as you want ...
+git push -u origin feat/add-coap-transport
+gh pr create --base dev --fill
+# after review/CI: squash-merge into dev, branch auto-deletes
+# release manager periodically merges dev -> main via PR
+```
+
+If your branch is a bugfix rather than a feature, use the prefix
+`fix/<short-name>` instead. Same rules apply.
+
 ## Commit and PR style
 
 - Subject line under 70 chars, present tense (`Add MQTT transport`, not
