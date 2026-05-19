@@ -362,6 +362,78 @@ def fig_latency():
 # ---------------------------------------------------------------------------
 # Driver.
 
+def fig_social_preview():
+    """1200x630 PNG for GitHub Social Preview / Twitter card / og:image.
+
+    Brand block left, three big stats right. No diagram — the goal is
+    single-message recognition at thumbnail size.
+    """
+    fig, ax = plt.subplots(figsize=(12, 6.3), facecolor="#0f1d2e")
+    ax.set_xlim(0, 100); ax.set_ylim(0, 50); ax.axis("off")
+    ax.set_facecolor("#0f1d2e")
+
+    # ── Left half: brand ───────────────────────────────────────────
+    # "OPEN PROTOCOL" chip
+    ax.add_patch(mpatches.FancyBboxPatch((4, 44), 28, 4,
+                                           boxstyle="round,pad=0.3,rounding_size=0.8",
+                                           facecolor="#1f4e79", edgecolor="none"))
+    ax.text(18, 46, "AN  OPEN  PROTOCOL",
+            fontsize=11, color="white", fontweight="bold",
+            ha="center", va="center")
+
+    # Big "DCP" mark
+    ax.text(8, 33, "DCP",
+            fontsize=82, color="white", fontweight="bold",
+            ha="left", va="center", family="serif")
+    # Underline
+    ax.add_patch(mpatches.Rectangle((8, 26), 22, 0.4,
+                                      facecolor="#9fbedb", edgecolor="none"))
+    # Subtitle
+    ax.text(8, 23, "Device Context Protocol",
+            fontsize=19, color="#9fbedb", ha="left", va="top",
+            fontweight="bold")
+    # Tagline
+    ax.text(8, 16,
+            "Let LLMs safely control",
+            fontsize=21, color="white", ha="left", va="top")
+    ax.text(8, 11.5,
+            "dollar-class microcontrollers.",
+            fontsize=21, color="white", ha="left", va="top")
+    # Footer URL + install
+    ax.text(8, 5, "github.com/device-context-protocol",
+            fontsize=13, color="#9fbedb", ha="left", va="center",
+            family="monospace")
+    ax.text(8, 2, "MIT  ·  pip install pydcp",
+            fontsize=11, color="#7090a8", ha="left", va="center",
+            family="monospace", style="italic")
+
+    # ── Right half: three stat rows ────────────────────────────────
+    # Vertical separator
+    ax.add_patch(mpatches.Rectangle((54, 6), 0.15, 38,
+                                      facecolor="#2d4a6a", edgecolor="none"))
+
+    # Each stat: big hero number on row 1, single descriptor line on row 2.
+    # Unit is baked into the descriptor so it can never collide with the number.
+    stats = [
+        (38, "19",     "bytes — typical call on the wire"),
+        (24, "<16 KB", "firmware footprint on an ESP32"),
+        (10, "MCP",    "compatible — zero-config in Claude Desktop"),
+    ]
+    for y, num, desc in stats:
+        # big hero number / word
+        ax.text(58, y, num,
+                fontsize=52,
+                color="#9fbedb", fontweight="bold",
+                ha="left", va="center")
+        # descriptor line directly below
+        ax.text(58, y - 6, desc,
+                fontsize=13, color="white",
+                ha="left", va="top", linespacing=1.3)
+
+    fig.subplots_adjust(left=0, right=1, top=1, bottom=0)
+    save(fig, "social_preview")
+
+
 def main():
     print("Generating figures to", HERE)
     fig_architecture()
@@ -369,6 +441,7 @@ def main():
     fig_footprint()
     fig_hallucination()
     fig_latency()
+    fig_social_preview()
     print("Done.")
 
 
