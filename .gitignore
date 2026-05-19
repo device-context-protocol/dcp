@@ -26,6 +26,9 @@ htmlcov/
 docs/paper/main.pdf
 docs/paper/dcp-arxiv-*.tar.gz
 
+# Internal launch / outreach drafts — kept local, not for public repo.
+.github/announce/
+
 # Local MCP / Claude Desktop configs (user-specific paths and ports)
 .mcp.json
 **/claude_desktop_config.json.bak-dcp
