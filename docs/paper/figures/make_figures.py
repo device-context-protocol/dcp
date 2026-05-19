@@ -129,16 +129,16 @@ def fig_architecture():
         ax.text((x1 + x2) / 2, max(y1, y2) + dy_label, label,
                 ha="center", va="bottom", fontsize=8, color=color, style="italic")
 
-    arrow(22, 28,  34, 28, "MCP",      dy_label=1)
-    arrow(34, 22,  22, 22, "results",  dy_label=-3.5, color="#666666")
+    arrow(22, 28,  34, 28, "MCP",       dy_label=1)
+    arrow(34, 22,  22, 22, "results",   dy_label=-3.5, color="#666666")
     arrow(104, 28, 116, 28, "DCP wire", dy_label=1)
     arrow(116, 22, 104, 22, "reply",    dy_label=-3.5, color="#666666")
 
-    # Transport bullets under device
-    transports = "UART  ·  MQTT  ·  BLE  ·  USB-CDC"
-    ax.text(89, 12, transports, ha="center", va="center", fontsize=7,
-            color="#444444", style="italic")
-    ax.text(89, 8, "(one wire format,\nany transport)",
+    # Transport bullets centered under the Device box (x ≈ 127, w 22).
+    ax.text(127, 13, "UART  ·  MQTT  ·  BLE  ·  USB-CDC",
+            ha="center", va="center", fontsize=7,
+            color="#555555", style="italic")
+    ax.text(127, 8,  "(one wire format, any transport)",
             ha="center", va="center", fontsize=7, color="#888888")
 
     save(fig, "arch")
