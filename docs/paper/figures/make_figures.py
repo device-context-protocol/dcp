@@ -80,10 +80,10 @@ def save(fig, name: str) -> None:
 # Figure 1 — Architecture.
 
 def fig_architecture():
-    fig, ax = plt.subplots(figsize=(8.2, 3.2))
+    fig, ax = plt.subplots(figsize=(8.4, 3.2))
     # extra horizontal margin so FancyBbox rounded-corner padding (~3 units)
     # never bleeds past the canvas on either side.
-    ax.set_xlim(-4, 152); ax.set_ylim(0, 52); ax.axis("off")
+    ax.set_xlim(-4, 158); ax.set_ylim(0, 52); ax.axis("off")
 
     def box(x, y, w, h, label, facecolor, edgecolor="black", text_color="black",
             fontsize=9, rounded=0.02):
@@ -118,9 +118,9 @@ def fig_architecture():
         box(x, y, inner_w, inner_h, label, C["bridge_inner"],
             edgecolor=C["bridge_outer"], fontsize=8.5)
 
-    # Device — short bare label (no parens). Pushed further right so the
-    # "DCP wire" label on the incoming arrow has breathing room.
-    box(122, 18, 22, 14, "Device\n< 16 KB MCU", C["device"], fontsize=10)
+    # Device — short bare label, slightly tighter font so it never kisses
+    # the rounded corners of the box.
+    box(120, 18, 28, 14, "Device\n< 16 KB MCU", C["device"], fontsize=9.5)
 
     # Arrows.
     def arrow(x1, y1, x2, y2, label, dy_label=2, color="black"):
@@ -132,15 +132,14 @@ def fig_architecture():
 
     arrow(22, 28,  34, 28, "MCP",       dy_label=1)
     arrow(34, 22,  22, 22, "results",   dy_label=-3.5, color="#666666")
-    arrow(104, 28, 122, 28, "DCP wire", dy_label=1)     # 18-unit gap (was 12)
-    arrow(122, 22, 104, 22, "reply",    dy_label=-3.5, color="#666666")
+    arrow(104, 28, 120, 28, "DCP wire", dy_label=1)     # 16-unit gap
+    arrow(120, 22, 104, 22, "reply",    dy_label=-3.5, color="#666666")
 
-    # Transport bullets centered under the Device box (x ≈ 133, w 22).
-    # Shortened slightly so the line is roughly the Device's width.
-    ax.text(133, 13, "UART · MQTT · BLE · USB-CDC",
+    # Transport bullets centered under the Device box (x = 134, w 28).
+    ax.text(134, 13, "UART · MQTT · BLE · USB-CDC",
             ha="center", va="center", fontsize=6.5,
             color="#555555", style="italic")
-    ax.text(133, 8,  "one wire format, any transport",
+    ax.text(134, 8,  "one wire format, any transport",
             ha="center", va="center", fontsize=6.5, color="#888888")
 
     save(fig, "arch")
