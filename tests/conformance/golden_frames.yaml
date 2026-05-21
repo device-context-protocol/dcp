@@ -66,6 +66,15 @@
     b: 0
   cbor_hex: "a3 61 72 18 ff 61 67 18 64 61 62 00"
 
+- name: call with explicit bool + string payload
+  kind: 0x01
+  seq: 6
+  intent: "set_enabled"
+  payload:
+    enabled: true
+    label: ok
+  cbor_hex: "a2 67 65 6e 61 62 6c 65 64 f5 65 6c 61 62 65 6c 62 6f 6b"
+
 - name: reply with bool
   kind: 0x02
   seq: 5
