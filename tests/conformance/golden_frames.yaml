@@ -32,6 +32,13 @@
     value: 0.0
   cbor_hex: "a1 65 76 61 6c 75 65 fb 00 00 00 00 00 00 00 00"
 
+- name: "reply with empty-map body"
+  kind: 0x02
+  seq: 8
+  intent: "ping"
+  payload: {}
+  cbor_hex: "a0"
+
 - name: dry-run call with one float
   kind: 0x81
   seq: 99
