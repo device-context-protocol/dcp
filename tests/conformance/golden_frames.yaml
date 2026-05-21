@@ -73,6 +73,15 @@
     confidence: 1.0
   cbor_hex: "a1 6a 63 6f 6e 66 69 64 65 6e 63 65 fb 3f f0 00 00 00 00 00 00"
 
+- name: event with integer payload at boundaries
+  kind: 0x03
+  seq: 0
+  intent: "motion_detected"
+  payload:
+    min: 0
+    max: 255
+  cbor_hex: "a2 63 6d 69 6e 00 63 6d 61 78 18 ff"
+
 - name: call with three small ints
   kind: 0x01
   seq: 0x1234
