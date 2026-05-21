@@ -36,6 +36,10 @@ def _build_frame(case: dict) -> bytes:
     return header + _hex(case.get("cbor_hex", ""))
 
 
+def _crc16_bytes(case: dict) -> bytes:
+    return _hex(f"{int(case['crc16']):04x}")
+
+
 def load_cases() -> list[dict]:
     return yaml.safe_load(GOLDEN.read_text(encoding="utf-8"))
 
@@ -90,6 +94,10 @@ def test_uart_wrap_roundtrip(case: dict):
     assert wire.endswith(b"\x00")
     assert b"\x00" not in wire[:-1]
     assert unwrap(wire[:-1]) == frame_bytes
+    if "uart_wire_hex" in case:
+        assert wire[:-1] == _hex(case["uart_wire_hex"])
+    if "crc16" in case:
+        assert wire[-3:-1] == _crc16_bytes(case)
 
 
 def test_intent_id_table():

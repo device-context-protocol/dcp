@@ -91,6 +91,8 @@
     g: 100
     b: 0
   cbor_hex: "a3 61 72 18 ff 61 67 18 64 61 62 00"
+  uart_wire_hex: "12 01 01 12 34 7a 22 a3 61 72 18 ff 61 67 18 64 61 62 03 94 ef"
+  crc16: 0x94ef
 
 - name: call with mixed-width sequence number
   kind: 0x01
