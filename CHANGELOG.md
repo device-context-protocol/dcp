@@ -14,7 +14,7 @@ it reaches 1.0. Pre-1.0 releases may break compatibility.
   optional 16-byte truncated signature appended to every frame. Both Bridge
   and device must agree; no in-band downgrade marker by design.
 - **Self-contained SHA-256 + HMAC-SHA256** in the ESP32 firmware
-  (`DCPCrypto.h`/`.cpp`) — no mbedtls/ESP-IDF dependency, ~1 KB of code.
+  (`DCPCrypto.h`/`.cpp`) — no mbedtls/ESP-IDF dependency.
 - **DCPBle**: ESP32 BLE peripheral via NimBLE-Arduino. Same intent table as
   `DCP`; one service, c2d/d2c characteristics derived from service UUID by
   convention (`0xC1` / `0xD1` last byte).
@@ -27,6 +27,21 @@ it reaches 1.0. Pre-1.0 releases may break compatibility.
 ### Changed
 
 - `Bridge` constructor takes `wire_secret=` for per-frame signing.
+
+### Fixed
+
+- **Footprint numbers corrected to measured values.** Earlier docs
+  claimed the DCP layer was "~14 KB" of flash and cited a `<16 KB`
+  design target. A reproducible measurement
+  (`docs/paper/figures/measure_footprint.py`, differencing the lamp
+  example against an empty Arduino sketch) shows the DCP layer is
+  **27.6 KB of flash and 0.6 KB of RAM** on ESP32. The flash figure is
+  above the original `<16 KB` target — the target predated the
+  on-device HMAC-SHA256 path — and is now reported as measured across
+  the README, paper, and firmware docs. The RAM figure (0.6 KB) came in
+  well under target.
+- **Latency figure is now measured**, not illustrative
+  (`tools/bench_latency.py`, 1000 round-trips per transport).
 
 ## [0.2.0] - 2026-05-12
 

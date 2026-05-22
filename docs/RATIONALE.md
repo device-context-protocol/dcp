@@ -36,9 +36,12 @@ out of the box.
 
 The decisive numbers are RAM and code size. A minimal MCP-over-WebSocket
 implementation on ESP32 lands around 80–120 KB of code and tens of KB of
-working RAM. DCP's reference firmware targets <16 KB of flash and <2 KB of
-RAM. **That difference is the difference between every IoT device and only
-the expensive ones.**
+working RAM. DCP's reference firmware measures 27.6 KB of flash and
+0.6 KB of RAM (the DCP layer over a baseline empty sketch — the flash
+came in above the original <16 KB target once on-device HMAC was added;
+the RAM came in well under). **That RAM difference — under 1 KB versus
+tens of KB — is the difference between every IoT device and only the
+expensive ones.**
 
 ## Why not W3C Web of Things (WoT)?
 

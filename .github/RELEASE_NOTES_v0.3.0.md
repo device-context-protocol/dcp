@@ -14,7 +14,8 @@ future work (see `docs/RATIONALE.md §7` and `docs/paper/main.tex §7`).
 - **10 / 10** round-trip tests pass against ESP32-WROOM-32 (CH340, 115 200 baud)
 - **Frame size:** 19 bytes for a typical `set_brightness(50)` call;
   35 bytes with the optional HMAC tail
-- **Firmware footprint:** ~14 KB of pure DCP over an empty Arduino sketch
+- **Firmware footprint:** the DCP layer measures 27.6 KB flash and
+  0.6 KB RAM over an empty Arduino sketch (measured)
 - **Five transports** ship: loopback, UART (COBS + CRC-16), MQTT,
   BLE GATT, in-process simulator. Plus the MCP server wrapper that
   surfaces every intent to any MCP host

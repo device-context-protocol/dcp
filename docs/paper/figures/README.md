@@ -32,11 +32,13 @@ README / web preview) into this directory.
   `latency_data.json`, produced by `tools/bench_latency.py`: 1000 timed
   round-trips per transport, median + IQR. Currently covers loopback,
   ESP32-WROOM-32 (CH340), and ESP32-S3 (native USB).
-- **Fig. 3 (footprint)** — partially synthetic. The DCP bar is a design
-  target; the IoT-MCP / Direct-MCP / Matter bars are cited or typical.
-  Needs a rework: the DCP layer is now measured (~14 KB over an empty
-  sketch) and the figure should distinguish measured-DCP from cited
-  baselines cleanly, including the flash-vs-RAM axis.
+- **Fig. 3 (footprint)** — **measured.** `fig_footprint()` reads
+  `footprint_data.json`, produced by `measure_footprint.py`: the DCP
+  layer is 27.6 KB flash / 0.6 KB RAM over a baseline empty sketch. The
+  figure plots DCP's measured static RAM against IoT-MCP's reported
+  74 KB peak memory — the one apples-to-apples (RAM-vs-RAM) comparison
+  available. IoT-MCP does not report a flash figure, so flash is given
+  in text, not plotted.
 - **Fig. 4 (hallucination)** — synthetic, and labelled as such in the
   figure footnote. Making it real needs an LLM adversarial-call
   benchmark (≈1000 generated calls per baseline, with a defined

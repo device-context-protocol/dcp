@@ -6,7 +6,8 @@ Arduino-compatible C++ library implementing the device side of DCP v0.1.
 - BLE GATT peripheral via NimBLE-Arduino (`DCPBle.h`)
 - Tiny inline CBOR encoder/decoder restricted to the subset DCP actually uses
 - Optional wire-level HMAC-SHA256 with a self-contained SHA-256 implementation
-- One header, one source file per transport — typical build is under 16 KB
+- Compact: the DCP layer measures 27.6 KB flash and 0.6 KB RAM over a
+  baseline empty sketch (measured — see `docs/paper/figures/measure_footprint.py`)
 
 ## Install
 

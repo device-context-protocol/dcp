@@ -1,7 +1,8 @@
 // DCP firmware reference implementation. See DCP.h for the wire format.
 //
-// Code size target: <16 KB on Cortex-M0 / ESP32-class MCUs. RAM use is
-// dominated by MAX_FRAME_BYTES (see DCP.h).
+// Measured footprint on ESP32 (the DCP layer over a baseline empty
+// Arduino sketch): 27.6 KB flash, 0.6 KB RAM. RAM use is dominated by
+// MAX_FRAME_BYTES (see DCP.h).
 
 #include "DCP.h"
 #include "DCPCrypto.h"

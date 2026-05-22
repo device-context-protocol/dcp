@@ -100,8 +100,8 @@ dcp::Status handle_set_brightness(uint8_t kind, dcp::CborReader& p, ...) {
 }
 ```
 
-> "And the device side is plain C++. CBOR map in, action out. Under 16 KB
-> of flash on a $5 ESP32."
+> "And the device side is plain C++. CBOR map in, action out. The DCP
+> layer is 27.6 KB of flash and under 1 KB of RAM on a $5 ESP32."
 
 ## Live demo (2:10 – 3:30)
 

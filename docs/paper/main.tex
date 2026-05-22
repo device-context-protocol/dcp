@@ -80,8 +80,9 @@ be prompt-injected) is given direct control of physical hardware. We present
 the \textbf{Device Context Protocol (DCP)}, a wire format and architecture
 purpose-built for LLM-driven control of constrained devices. DCP composes a
 6-byte header, a CBOR-encoded payload, and an optional 16-byte HMAC into a
-sub-50-byte typical frame, with a reference firmware footprint targeted under
-16\,KB on Cortex-M0+ class MCUs. A \emph{Bridge} process between the LLM and
+sub-50-byte typical frame; the reference firmware's DCP layer measures
+27.6\,KB of flash and 0.6\,KB of RAM on an ESP32. A \emph{Bridge} process
+between the LLM and
 the device enforces capability scoping, range and type checks, dry-run
 evaluation, and units-as-types---\textbf{protocol-layer} safety primitives
 that prevent malformed or hallucinated calls before any byte traverses the
@@ -453,13 +454,20 @@ non-ESP32 MCUs.
 
 \paragraph{Footprint.} The reference firmware was measured against
 Arduino-ESP32 core 3.3.8 on an ESP32-WROOM-32 development board (CH340
-USB-Serial, 115\,200 baud). The full sketch including the Arduino runtime,
-FreeRTOS, and the DCP layer compiles to 294\,KB of flash with 22.7\,KB of
-globals; the pure DCP code (header, framing, CBOR subset, SHA-256, intent
-dispatch) is approximately 14\,KB over a baseline empty Arduino sketch.
-This is within our design target of $<\!16$\,KB for the protocol
-implementation itself; ports to MCUs without an Arduino-style runtime are
-expected to shed the bulk of the residual baseline.
+USB-Serial, 115\,200 baud). The full lamp sketch including the Arduino
+runtime, FreeRTOS, and the DCP layer compiles to 295\,KB of flash with
+22.7\,KB of globals. The DCP layer in isolation --- protocol, framing,
+CBOR subset, SHA-256, intent dispatch, plus the lamp example's handlers
+--- was measured by differencing against a baseline empty Arduino
+sketch (\texttt{docs/paper/figures/measure\_footprint.py}): it adds
+\textbf{27.6\,KB of flash and 0.6\,KB of RAM}. The RAM cost is
+negligible. The flash cost is above the $<\!16$\,KB design target we
+originally set; that target predates the on-device HMAC-SHA256
+verification path, which the current build always links in. We report
+the measured number rather than the target: 27.6\,KB of flash remains
+small in absolute terms --- it leaves an ESP32's 4\,MB flash essentially
+untouched and fits comfortably within Cortex-M0+ class budgets --- but
+the original target was not met and we revise it accordingly.
 
 The Bridge $\leftrightarrow$ device path was end-to-end validated against
 thirteen round-trip cases (\texttt{tools/test\_uart\_roundtrip.py}) covering
@@ -540,19 +548,23 @@ threefold: a working implementation of MCP servers on edge devices, an
 evaluation methodology spanning 22 sensor types and 6 MCUs, and the
 demonstration that 74\,KB peak memory suffices.
 
-Figure~\ref{fig:footprint} shows the design-target memory budget DCP
-aims for, alongside IoT-MCP's measured numbers and typical figures for
-direct MCP and Matter on comparable hardware. DCP's target sits roughly
-a factor of five below IoT-MCP; whether we hit it is the central
-question of the forthcoming evaluation paper.
+Figure~\ref{fig:footprint} compares the measured static RAM footprint
+of the DCP layer against IoT-MCP's reported peak memory. Static and
+peak RAM is the one axis on which the two projects can be compared
+directly --- and the scarce resource on a microcontroller. The DCP
+layer's 0.6\,KB sits roughly two orders of magnitude below IoT-MCP's
+74\,KB. We do not plot flash: IoT-MCP does not report a flash figure,
+and a single-bar flash panel would compare nothing. DCP's measured
+flash (27.6\,KB) is given in the text above.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{footprint.pdf}
-\caption{Reference-implementation memory budgets. DCP values are
-\emph{design targets} (hatched); others are measured/typical figures
-from the cited sources. Measured DCP numbers will replace the hatched
-bars in a follow-up paper.}
+\caption{Measured static RAM footprint. The DCP layer (0.6\,KB) is the
+differential measurement from \texttt{measure\_footprint.py}; IoT-MCP's
+74\,KB is its reported peak memory~\cite{iotmcp2025}. IoT-MCP does not
+report a comparable flash figure, so flash is omitted from the plot and
+stated in text.}
 \label{fig:footprint}
 \end{figure}
 
@@ -560,8 +572,9 @@ DCP diverges in four ways:
 
 \begin{enumerate}[leftmargin=*,nosep]
   \item \textbf{Protocol, not implementation.} IoT-MCP ports MCP unchanged.
-        DCP changes the wire format to be smaller and statically dispatchable,
-        targeting roughly $\frac{1}{5}$ the memory.
+        DCP changes the wire format to be smaller and statically
+        dispatchable; the measured DCP layer uses 0.6\,KB of static RAM
+        against IoT-MCP's reported 74\,KB peak memory.
   \item \textbf{LLM-native safety.} Capability tokens, dry-run as a wire
         kind, and units-as-types are protocol primitives in DCP. IoT-MCP
         does not address these.

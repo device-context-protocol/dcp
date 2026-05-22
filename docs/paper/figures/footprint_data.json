@@ -1,0 +1,11 @@
+{
+  "fqbn": "esp32:esp32:esp32",
+  "baseline_flash": 266740,
+  "baseline_globals": 22068,
+  "lamp_flash": 295007,
+  "lamp_globals": 22712,
+  "dcp_layer_flash": 28267,
+  "dcp_layer_globals": 644,
+  "dcp_layer_flash_kb": 27.6,
+  "dcp_layer_globals_kb": 0.6
+}

@@ -10,7 +10,8 @@
 > down to dollar-class microcontrollers.
 >
 > Intent-level, transport-agnostic, capability-scoped. Compact wire format
-> (sub-50-byte frames). Self-contained firmware under 16 KB.
+> (sub-50-byte frames). Self-contained firmware: under 1 KB of RAM,
+> ~28 KB of flash.
 >
 > Complementary to [MCP](https://modelcontextprotocol.io) — a reference
 > Bridge translates DCP ↔ MCP so any MCP host (Claude Desktop, Claude Code,
@@ -80,19 +81,23 @@ and an ESP32-S3 (LILYGO T-Panel S3) over the S3's native USB-Serial/JTAG
 
 - 13/13 round-trip tests pass on each board (`tools/test_uart_roundtrip.py`)
 - 88/88 Python unit & conformance tests pass
-- Compiled firmware: 294 KB flash, 22.7 KB globals on WROOM-32;
-  322 KB / 22.7 KB on the S3 (Arduino-ESP32 core 3.3.8)
-- The pure DCP layer is approximately 14 KB over a baseline empty
-  sketch (measurement script in `docs/paper/figures/`)
+- Full lamp firmware: 295 KB flash, 22.7 KB globals on WROOM-32 — most
+  of which is the Arduino-ESP32 runtime + FreeRTOS, not DCP
+- **The DCP layer itself measures 27.6 KB of flash and 0.6 KB of RAM**
+  over a baseline empty sketch — reproduce with
+  `docs/paper/figures/measure_footprint.py`. The flash figure is over
+  the original `<16 KB` design target (set before on-device HMAC was
+  added); the RAM figure is well under it.
 - The S3 run also exercises DCP over a native-USB CDC link rather
   than a USB-UART bridge chip — same firmware, no transport-specific
   code
 
-![Memory footprint: DCP target vs IoT-MCP measured vs Direct MCP vs Matter](docs/paper/figures/footprint.png)
+![Static RAM footprint: measured DCP layer vs IoT-MCP reported peak memory](docs/paper/figures/footprint.png)
 
-*DCP design target sits roughly 5× under IoT-MCP and 20× under Matter on
-the same class of MCU. Hatched bars are design targets, plain bars are
-measured / typical of the cited sources.*
+*Static RAM is the scarce resource on an MCU. The DCP layer's measured
+0.6 KB of RAM sits two orders of magnitude under IoT-MCP's reported
+74 KB peak memory. DCP's flash cost (27.6 KB, measured) is not plotted
+— IoT-MCP does not report a comparable flash figure.*
 
 See [docs/RATIONALE.md §7](docs/RATIONALE.md) for what the hardware
 validation does and does not prove.

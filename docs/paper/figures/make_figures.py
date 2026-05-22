@@ -122,7 +122,7 @@ def fig_architecture():
 
     # Device — short bare label, slightly tighter font so it never kisses
     # the rounded corners of the box.
-    box(120, 18, 28, 14, "Device\n< 16 KB MCU", C["device"], fontsize=9.5)
+    box(120, 18, 28, 14, "Device\ncommodity MCU", C["device"], fontsize=9.5)
 
     # Arrows.
     def arrow(x1, y1, x2, y2, label, dy_label=2, color="black"):
@@ -234,31 +234,52 @@ def fig_wire_format():
 # Figure 3 — Footprint comparison.
 
 def fig_footprint():
-    fig, axes = plt.subplots(1, 2, figsize=(6.5, 2.8))
+    """Figure 3 — measured static RAM footprint: DCP vs IoT-MCP.
 
-    protocols = ["DCP\n(target)", "IoT-MCP\n[ref]", "Direct\nMCP", "Matter\n(typical)"]
-    flash_kb  = [16, 74, 120, 256]
-    ram_kb    = [2,  18, 40,  80]
-    colors    = [C["dcp"], C["iotmcp"], C["rawmcp"], C["matter"]]
+    DCP's number is read from footprint_data.json (measure_footprint.py);
+    IoT-MCP's 74 KB is its reported peak memory. Static/peak RAM is the
+    one apples-to-apples axis between the two projects and the scarce
+    resource on an MCU. IoT-MCP does not report a flash figure, so flash
+    stays in the caption rather than being plotted against a blank.
+    """
+    data_path = HERE / "footprint_data.json"
+    if not data_path.exists():
+        raise FileNotFoundError(
+            "footprint_data.json missing — run measure_footprint.py first.")
+    fp = json.loads(data_path.read_text(encoding="utf-8"))
+    dcp_ram_kb   = fp["dcp_layer_globals"] / 1024.0
+    dcp_flash_kb = fp["dcp_layer_flash"] / 1024.0
 
-    for ax, data, label, ymax in [
-        (axes[0], flash_kb, "Flash (KB)", 300),
-        (axes[1], ram_kb,   "RAM (KB)",   100),
-    ]:
-        bars = ax.bar(protocols, data, color=colors, edgecolor="white", linewidth=0.5)
-        bars[0].set_hatch("//"); bars[0].set_edgecolor("white")
-        for bar, val in zip(bars, data):
-            ax.text(bar.get_x() + bar.get_width() / 2,
-                    bar.get_height() + ymax * 0.02,
-                    f"{val}",
-                    ha="center", va="bottom", fontsize=8, color="#333")
-        ax.set_ylabel(label)
-        ax.set_ylim(0, ymax)
-        ax.tick_params(axis="x", length=0)
+    fig, ax = plt.subplots(figsize=(6.5, 2.3))
 
-    fig.suptitle("Reference-implementation memory footprint  (DCP target, others measured/typical)",
-                 fontsize=9.5, y=1.02)
-    fig.tight_layout()
+    labels = ["DCP layer\n(measured)", "IoT-MCP\n(reported peak memory)"]
+    values = [dcp_ram_kb, 74.0]
+    colors = [C["dcp"], C["iotmcp"]]
+
+    y = np.arange(len(labels))
+    ax.barh(y, values, height=0.5, color=colors, edgecolor="white", linewidth=0.5)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels)
+    ax.invert_yaxis()
+    ax.set_xlabel("static / peak RAM (KB)  —  lower is better")
+    ax.set_xlim(0, 84)
+    ax.tick_params(axis="y", length=0)
+
+    for yi, v in zip(y, values):
+        txt = f"{v:.1f} KB" if v < 10 else f"{v:.0f} KB"
+        ax.text(v + 1.5, yi, txt, va="center", ha="left",
+                fontsize=9, color="#333", fontweight="bold")
+
+    ax.set_title("Static RAM footprint  (the scarce resource on an MCU)",
+                 loc="left", fontsize=9.5, pad=8)
+
+    fig.subplots_adjust(bottom=0.34, top=0.84, left=0.27, right=0.97)
+    fig.text(0.5, 0.04,
+             f"DCP: measured — the DCP layer adds {dcp_ram_kb:.1f} KB RAM "
+             f"and {dcp_flash_kb:.1f} KB flash over a bare Arduino sketch "
+             f"(measure_footprint.py).\nIoT-MCP: 74 KB peak memory, reported "
+             f"in [iotmcp2025]; it does not report a comparable flash figure.",
+             ha="center", va="bottom", fontsize=7, color="#666", style="italic")
     save(fig, "footprint")
 
 
@@ -439,9 +460,9 @@ def fig_social_preview():
     # Each stat: big hero number on row 1, single descriptor line on row 2.
     # Unit is baked into the descriptor so it can never collide with the number.
     stats = [
-        (38, "19",     "bytes — typical call on the wire"),
-        (24, "<16 KB", "firmware footprint on an ESP32"),
-        (10, "MCP",    "compatible — zero-config in Claude Desktop"),
+        (38, "19",    "bytes — typical call on the wire"),
+        (24, "<1 KB", "of RAM — the DCP layer's measured footprint"),
+        (10, "MCP",   "compatible — zero-config in Claude Desktop"),
     ]
     for y, num, desc in stats:
         # big hero number / word
