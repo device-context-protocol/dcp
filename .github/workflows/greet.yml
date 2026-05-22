@@ -1,0 +1,32 @@
+name: Greet first-time contributors
+
+# Posts a short note the first time someone opens an issue or PR here.
+# Uses pull_request_target so the token can comment on PRs from forks;
+# the action only posts a comment, it never checks out or runs PR code.
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  greet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/first-interaction@v1
+        with:
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          issue-message: >
+            Thanks for the first issue here. If it's a bug, a small repro
+            (the manifest plus the call that misbehaves) helps a lot. If
+            it's a question or an idea, that's fine too.
+          pr-message: >
+            Thanks for the PR — first one from you here. A maintainer will
+            get to it. If CI comes back red, the commands to reproduce the
+            checks locally (pytest, ruff check src tests) are in
+            CONTRIBUTING.md.
