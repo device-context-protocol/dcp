@@ -32,6 +32,13 @@
     value: 0.0
   cbor_hex: "a1 65 76 61 6c 75 65 fb 00 00 00 00 00 00 00 00"
 
+- name: reply with empty-map body
+  kind: 0x02
+  seq: 8
+  intent: "ping"
+  payload: {}
+  cbor_hex: "a0"
+
 - name: dry-run call with one float
   kind: 0x81
   seq: 99
@@ -48,6 +55,16 @@
     status: 4
   cbor_hex: "a1 66 73 74 61 74 75 73 04"
 
+- name: error with multi-field payload
+  kind: 0x04
+  seq: 13
+  intent: "unknown"
+  payload:
+    status: 4
+    message: unknown
+    code: 404
+  cbor_hex: "a3 66 73 74 61 74 75 73 04 67 6d 65 73 73 61 67 65 67 75 6e 6b 6e 6f 77 6e 64 63 6f 64 65 19 01 94"
+
 - name: event with float payload
   kind: 0x03
   seq: 0
@@ -55,6 +72,15 @@
   payload:
     confidence: 1.0
   cbor_hex: "a1 6a 63 6f 6e 66 69 64 65 6e 63 65 fb 3f f0 00 00 00 00 00 00"
+
+- name: event with integer payload at boundaries
+  kind: 0x03
+  seq: 0
+  intent: "motion_detected"
+  payload:
+    min: 0
+    max: 255
+  cbor_hex: "a2 63 6d 69 6e 00 63 6d 61 78 18 ff"
 
 - name: call with three small ints
   kind: 0x01
@@ -65,6 +91,27 @@
     g: 100
     b: 0
   cbor_hex: "a3 61 72 18 ff 61 67 18 64 61 62 00"
+  uart_wire_hex: "12 01 01 12 34 7a 22 a3 61 72 18 ff 61 67 18 64 61 62 03 94 ef"
+  crc16: 0x94ef
+
+- name: call with mixed-width sequence number
+  kind: 0x01
+  seq: 0xff01
+  intent: "set_color"
+  payload:
+    r: 255
+    g: 100
+    b: 0
+  cbor_hex: "a3 61 72 18 ff 61 67 18 64 61 62 00"
+
+- name: call with explicit bool + string payload
+  kind: 0x01
+  seq: 6
+  intent: "set_enabled"
+  payload:
+    enabled: true
+    label: ok
+  cbor_hex: "a2 67 65 6e 61 62 6c 65 64 f5 65 6c 61 62 65 6c 62 6f 6b"
 
 - name: reply with bool
   kind: 0x02
