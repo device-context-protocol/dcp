@@ -49,7 +49,7 @@ The tarball is `.gitignored` — regenerate before each upload.
 
 ## Before submitting to arXiv
 
-1. **Authors.** Replace `deeplethe` and the placeholder email. arXiv lets
+1. **Authors.** Replace `DeepLethe` and the placeholder email. arXiv lets
    you list affiliations per-author.
 2. **Repo URL.** Currently a footnote placeholder
    (`github.com/device-context-protocol`). Either point to the real public

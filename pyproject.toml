@@ -5,7 +5,7 @@ description = "Device Context Protocol — Python reference implementation. A br
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "deeplethe" }]
+authors = [{ name = "DeepLethe" }]
 keywords = ["mcp", "iot", "hardware", "llm", "agent", "device", "protocol"]
 dependencies = [
     "cbor2>=5.6",
