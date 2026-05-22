@@ -73,14 +73,20 @@ device boundary.
 
 ## Validated on real hardware
 
-As of v0.3 the reference firmware is **measured-validated on an
-ESP32-WROOM-32 dev board** over CH340 USB-Serial at 115 200 baud:
+As of v0.3 the reference firmware is **measured-validated on two
+physical boards** — an ESP32-WROOM-32 dev board over CH340 USB-Serial,
+and an ESP32-S3 (LILYGO T-Panel S3) over the S3's native USB-Serial/JTAG
+— both at 115 200 baud:
 
-- 13/13 round-trip tests pass (`tools/test_uart_roundtrip.py`)
+- 13/13 round-trip tests pass on each board (`tools/test_uart_roundtrip.py`)
 - 88/88 Python unit & conformance tests pass
-- Compiled firmware: 294 KB flash, 22.7 KB globals (Arduino-ESP32 core 3.3.8)
+- Compiled firmware: 294 KB flash, 22.7 KB globals on WROOM-32;
+  322 KB / 22.7 KB on the S3 (Arduino-ESP32 core 3.3.8)
 - The pure DCP layer is approximately 14 KB over a baseline empty
   sketch (measurement script in `docs/paper/figures/`)
+- The S3 run also exercises DCP over a native-USB CDC link rather
+  than a USB-UART bridge chip — same firmware, no transport-specific
+  code
 
 ![Memory footprint: DCP target vs IoT-MCP measured vs Direct MCP vs Matter](docs/paper/figures/footprint.png)
 
@@ -95,12 +101,14 @@ validation does and does not prove.
 
 The reference firmware is portable by design (Arduino `Stream` + a
 software SHA-256, no SoC-specific code paths in `DCP.{h,cpp}`). It
-cross-compiles for every current ESP32 variant *and* for ESP8266,
-with end-to-end UART validation pending boards on the bench:
+cross-compiles for every current ESP32 variant *and* for ESP8266;
+two of those targets are also runtime-validated on real boards, the
+rest are build-validated pending hardware on the bench:
 
 | Target            | ISA                   | Flash (lamp+blink) | Globals  | Status        |
 |-------------------|-----------------------|--------------------|----------|---------------|
 | ESP32-WROOM-32    | Xtensa LX6 (baseline) | 294 KB             | 22.7 KB  | runtime ✓     |
+| ESP32-S3 (T-Panel)| Xtensa LX7            | 322 KB             | 22.7 KB  | runtime ✓ (native USB) |
 | ESP32-C3          | RV32IMC               | 289 KB             | 13.4 KB  | builds ✓      |
 | ESP32-C6          | RV32IMAC + HW-crypto  | 266 KB             | 14.0 KB  | builds ✓      |
 | ESP32-H2          | RV32IMAC + 802.15.4   | 292 KB             | 14.0 KB  | builds ✓      |
@@ -294,7 +302,8 @@ MIT.
 - [x] Conformance test suite (golden frames, language-neutral YAML)
 - [x] Codegen `--stubs`: emits handler signatures + binding table
 - [x] Quickstart video script ([docs/QUICKSTART_VIDEO.md](docs/QUICKSTART_VIDEO.md))
-- [x] Real-hardware UART validation (ESP32-WROOM-32, 13/13 round-trips)
+- [x] Real-hardware validation on two boards (ESP32-WROOM-32 over
+  CH340, ESP32-S3 / T-Panel over native USB), 13/13 round-trips each
 - [x] Cross-compile clean on ESP32 RISC-V family (C3, C6, H2, P4) and ESP8266
 - [x] Public repo at `device-context-protocol/dcp` (v0.3.0 released)
 - [x] PyPI release (`pip install pydcp`)
