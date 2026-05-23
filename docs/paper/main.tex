@@ -91,10 +91,17 @@ work on runtime guardrails for LLM-driven physical systems~\cite{web_of_drones,r
 and post-hoc behavioral intrusion detection~\cite{aegismcp}: DCP prevents
 structurally-invalid calls; those approaches catch what slips through. We
 describe DCP's design rationale, MIT-licensed reference implementations
-(Python Bridge, ESP32 firmware), and a language-neutral conformance suite.
-We position DCP as the missing layer between MCP (which is moving toward
-enterprise SaaS connectivity~\cite{mcp_roadmap_2026}) and the physical
-devices it does not reach.
+(Python Bridge, ESP32 firmware), a language-neutral conformance suite,
+and an empirical evaluation in which 295~tool calls produced by two
+LLMs (DeepSeek~V3, Qwen2.5-72B-Instruct) in response to six categories
+of adversarial prompts are run through the host-side validators of
+DCP, Raw MCP, IoT-MCP, and a well-formed OpenAPI~3 schema; DCP
+rejects 100\,\% of capability-escalation attempts and 50\,\% of
+prompt-injection attempts versus 0--5\,\% for MCP-family protocols,
+matching OpenAPI's expressiveness at three orders of magnitude less
+firmware footprint. We position DCP as the missing layer between MCP
+(which is moving toward enterprise SaaS connectivity
+\cite{mcp_roadmap_2026}) and the physical devices it does not reach.
 \end{abstract}
 
 \section{Introduction}
@@ -754,31 +761,34 @@ compact encodings and explicit cryptographic semantics.
 
 \subsection{What this paper does not prove}
 
-This is a design and architecture paper with limited measurement. We have
-validated the reference implementation on one MCU (ESP32-WROOM-32) over
-one transport (UART), and reported its compiled footprint. We have not
-yet established:
+We have validated the reference implementation on one MCU (ESP32-WROOM-32)
+over one transport (UART), reported its compiled footprint, measured
+its end-to-end latency, and run an empirical adversarial-prompt study
+against two LLMs (Section~\ref{sec:safety}, Figure~\ref{fig:halluc}).
+We have \emph{not} established:
 
 \begin{itemize}[leftmargin=*,nosep]
   \item Footprint and latency across the multi-MCU matrix that IoT-MCP
-        covers (Cortex-M0+, nRF52840, ESP32-C3 etc.).
+        covers (Cortex-M0+, nRF52840, ESP32-C3 etc.). The DCP firmware
+        is portable Arduino C++, but only ESP32 is measured here.
   \item Comparative end-to-end latency vs IoT-MCP's reported
         $\sim$\,205\,ms (we have qualitative confirmation of similar
         order-of-magnitude but no formal A/B study).
-  \item Quantitative LLM-safety improvement: the adversarial-prompt
-        study that would empirically establish the Bridge's
-        hallucination-rejection rate against baselines.
+  \item LLM-safety results beyond two LLMs and six attack categories.
+        Our corpus is 295~tool calls from DeepSeek~V3 and
+        Qwen2.5-72B-Instruct (a third candidate, Qwen2.5-7B-Instruct,
+        emitted no parseable OpenAI-style tool calls and was excluded).
+        Broader coverage across model families and a larger,
+        independently-sourced attack taxonomy is left to follow-up work.
 \end{itemize}
 
-These belong in a follow-on paper after the hardware campaign. The present
-contribution is the architectural argument and the open-source
-implementation that makes it reproducible. For the empirical evaluation we
-plan to leverage the recently-released IoT-SkillsBench
-benchmark~\cite{iot_skillsbench}, which spans three representative
-platform--framework combinations (ATmega2560+Arduino, ESP32-S3+ESP-IDF,
-nRF52840+Zephyr) and 42 tasks across three difficulty levels. Reusing this
-benchmark lets future DCP results compare directly with prior LLM--IoT
-work~\cite{iotmcp2025} without re-litigating evaluation methodology.
+For the broader hardware and benchmark evaluation we plan to leverage
+the recently-released IoT-SkillsBench~\cite{iot_skillsbench}, which
+spans three representative platform--framework combinations
+(ATmega2560+Arduino, ESP32-S3+ESP-IDF, nRF52840+Zephyr) and 42 tasks
+across three difficulty levels. Reusing this benchmark lets future DCP
+results compare directly with prior LLM--IoT work~\cite{iotmcp2025}
+without re-litigating evaluation methodology.
 
 \subsection{Known limitations of v0.x}
 
