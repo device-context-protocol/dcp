@@ -51,7 +51,7 @@ intents:
   - name: play_tone
     params:
       freq:     { type: int, unit: hz, range: [50, 5000] }
-      duration: { type: duration, unit: ms, range: [10, 5000], default: 200 }
+      duration: { type: int, unit: ms, range: [10, 5000], default: 200 }
     capability: panel.write
     idempotent: false
     dry_run: true
