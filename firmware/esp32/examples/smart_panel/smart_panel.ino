@@ -13,15 +13,22 @@
 //
 // Build target: ESP32S3 Dev Module, Flash 16MB, PSRAM OPI 8MB.
 
+// Temporary bring-up flag: skip all LCD/touch init so the firmware boots
+// on boards where PSRAM is absent or the RGB panel config is wrong.
+// DCP UART + buzzer + CAN keep working; display handlers become no-ops.
+#define DCP_NO_DISPLAY 1
+
 #include "DCP.h"
 #include "DCPCrypto.h"
 #include <Arduino.h>
 #include <Wire.h>
+#if !DCP_NO_DISPLAY
 #include <Arduino_GFX_Library.h>
 // TouchLib needs the chip model selected before the header is included.
 // The T-Panel S3's CST3240 is a mutual-capacitance controller.
 #define TOUCH_MODULES_CST_MUTUAL
 #include "TouchLib.h"
+#endif
 #include "driver/twai.h"
 
 // ───────── Pin definitions (from T-Panel pin_config.h) ─────────
@@ -76,6 +83,7 @@ static uint32_t  g_score_next_ms = 0;
 static bool      g_score_playing = false;
 
 // ───────── Display objects ─────────
+#if !DCP_NO_DISPLAY
 Arduino_DataBus *bus = new Arduino_XL9535SWSPI(
     IIC_SDA, IIC_SCL, -1, XL95X5_CS, XL95X5_SCLK, XL95X5_MOSI);
 Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
@@ -85,12 +93,14 @@ Arduino_ESP32RGBPanel *rgbpanel = new Arduino_ESP32RGBPanel(
     12, 13, 42, 46, 45,                      // R0..R4
     1, 20, 2, 0,
     1, 30, 8, 1,
-    10, 6'000'000L, false, 0, 0);
+    10, 6'000'000L, false, 0, 0,
+    LCD_WIDTH * 10);   // bounce buffer = 10 rows in DRAM, fixes QSPI PSRAM bandwidth underrun
 Arduino_RGB_Display *gfx = new Arduino_RGB_Display(
     LCD_WIDTH, LCD_HEIGHT, rgbpanel, 0, true,
     bus, -1, st7701_type9_init_operations, sizeof(st7701_type9_init_operations));
 
 TouchLib touch(Wire, IIC_SDA, IIC_SCL, CST3240_ADDR);
+#endif
 
 // ───────── DCP intent handlers ─────────
 
@@ -144,8 +154,10 @@ static dcp::Status h_set_color(uint8_t kind, dcp::CborReader& params,
         return dcp::STATUS_OK;
     }
     g_r = (uint8_t)r; g_g = (uint8_t)g; g_b = (uint8_t)b;
+#if !DCP_NO_DISPLAY
     uint16_t rgb565 = gfx->color565(g_r, g_g, g_b);
     gfx->fillRect(20, 360, 440, 100, rgb565);   // bottom color swatch
+#endif
     return dcp::STATUS_OK;
 }
 
@@ -166,15 +178,21 @@ static dcp::Status h_display_text(uint8_t, dcp::CborReader& params,
             if (!params.read_int(&size)) return dcp::STATUS_RANGE;
         } else { params.skip(); }
     }
+#if !DCP_NO_DISPLAY
     gfx->setTextSize((uint8_t)size);
     gfx->setCursor(10, 20 + (int)line * 32 * (int)size);
     gfx->setTextColor(0xFFFF, 0x0000);
     gfx->print(buf);
+#else
+    (void)buf; (void)line; (void)size;
+#endif
     return dcp::STATUS_OK;
 }
 
 static dcp::Status h_clear_screen(uint8_t, dcp::CborReader&, dcp::CborMap&, void*) {
+#if !DCP_NO_DISPLAY
     gfx->fillScreen(0);
+#endif
     return dcp::STATUS_OK;
 }
 
@@ -411,6 +429,7 @@ static void pump_score() {
 }
 
 // ───────── Touch polling ─────────
+#if !DCP_NO_DISPLAY
 static void pump_touch() {
     if (!touch.read()) {
         g_touch_pressed = false;
@@ -422,37 +441,85 @@ static void pump_touch() {
     g_last_touch_y = p.y;
     // TODO: emit `touch_pressed` DCP event with x/y/region. v0.4 work.
 }
+#else
+static void pump_touch() {}
+#endif
 
 // ───────── Setup / loop ─────────
 void setup() {
     Serial.begin(115200);   // bring-up over USB-CDC first; switch to Serial1 for prod
-    delay(200);
+    delay(3000);            // diagnostic: wait long enough for host to grab CDC
+    Serial.println("[1] setup start");
+    Serial.flush();
 
-    // XL9535 (TCA9535) is rated max 400kHz — 800kHz was unreliable.
+    // Diagnostic: force backlight ON with plain GPIO, skip LEDC entirely.
+    pinMode(LCD_BL, OUTPUT);
+    digitalWrite(LCD_BL, HIGH);
+    Serial.println("[2] backlight HIGH");
+
+    // XL9535 (TCA9535) is rated max 400kHz — 800kHz was a bad idea.
     Wire.begin(IIC_SDA, IIC_SCL, 400000);
+    Serial.println("[3] Wire begin");
 
-    ledcAttach(LCD_BL, PWM_BL_HZ, PWM_BITS);
-    ledcWrite(LCD_BL, 128);    // ~50% backlight
+    // I2C scan — must see XL9535 (0x20) for LCD_RST control, CST3240 (0x5A) for touch.
+    Serial.print("[3a] I2C scan:");
+    int found = 0;
+    for (uint8_t addr = 1; addr < 127; addr++) {
+        Wire.beginTransmission(addr);
+        if (Wire.endTransmission() == 0) {
+            Serial.printf(" 0x%02x", addr);
+            found++;
+        }
+    }
+    Serial.printf("  (%d devices)\n", found);
+
+    // WORKAROUND: Arduino_XL9535SWSPI::begin() only sets port 0 to OUTPUT,
+    // leaving port 1 (where CS=17 SCLK=15 MOSI=16 live, per the lib's
+    // P1.x = 10..17 addressing) as INPUT. The bit-banged SPI writes never
+    // drive the lines, so the LCD never receives its init sequence.
+    // Force both ports to OUTPUT and drive everything HIGH (releases
+    // LCD_RST on P0.5, parks CS/SCLK/MOSI in idle state).
+    auto xl_w = [](uint8_t reg, uint8_t val) {
+        Wire.beginTransmission(0x20);
+        Wire.write(reg); Wire.write(val);
+        Wire.endTransmission();
+    };
+    xl_w(0x06, 0x00);  // CONFIG_PORT_0 = 0 → all OUTPUT
+    xl_w(0x07, 0x00);  // CONFIG_PORT_1 = 0 → all OUTPUT
+    xl_w(0x02, 0xFF);  // OUTPUT_PORT_0 = 0xFF → all HIGH (releases LCD_RST, TOUCH_RST)
+    xl_w(0x03, 0xFF);  // OUTPUT_PORT_1 = 0xFF → all HIGH (CS/SCLK/MOSI idle high)
+    delay(50);
+    Serial.println("[3b] XL9535 ports forced OUTPUT, LCD_RST released");
+    Serial.flush();
 
     // Note: do NOT ledcAttach BUZZER_PIN — Arduino's tone()/noTone() owns
     // its own LEDC channel internally in core 3.x. Doing both fights.
     pinMode(BUZZER_PIN, OUTPUT);
+    Serial.println("[4] buzzer pin OK");
 
+#if !DCP_NO_DISPLAY
     gfx->begin();
-    gfx->fillScreen(0);
-    gfx->setTextColor(0xFFFF);
-    gfx->setTextSize(2);
-    gfx->setCursor(10, 10);
+    Serial.println("[5] gfx->begin done");
+
+    gfx->fillScreen(0xFFFF);
+    gfx->setTextColor(0x0000);
+    gfx->setTextSize(3);
+    gfx->setCursor(10, 200);
     gfx->print("DCP smart-panel-01");
-    gfx->setCursor(10, 36);
-    gfx->print("waiting...");
+    Serial.println("[6] draw done");
 
     touch.init();
+    Serial.println("[7] touch init done");
+#else
+    Serial.println("[5-7] display skipped (DCP_NO_DISPLAY)");
+#endif
 
     init_can();
+    Serial.println("[8] can init done");
 
     static dcp::DCP link(Serial, bindings, sizeof(bindings) / sizeof(bindings[0]));
     dcp_link = &link;
+    Serial.println("[9] setup complete");
 }
 
 void loop() {
