@@ -456,11 +456,25 @@ new code in \texttt{src/dcp/manifest.py} and \texttt{src/dcp/safety.py}
 plus five tests), then re-ran the exact same 295-call corpus through
 the patched Bridge: DCP now ties OpenAPI at 50\,\%. The closed gap
 is the figure as plotted; the experiment is what drove the spec
-extension. The gap on
-\texttt{set\_label} is real and traces directly to a missing feature:
-DCP's current \texttt{Param} type has no string \texttt{pattern} field.
-Adding one is on the v0.4 roadmap and would close the remaining gap;
-we note it here because the empirical study found the gap.
+extension.
+
+A note on why OpenAPI appears in the comparison at all. OpenAPI is
+included as an \emph{upper-bound reference} for what a mature
+server-side validation layer can structurally express --- not as a
+deployable alternative for the targets DCP serves. A typical OpenAPI
+runtime needs an HTTP server, a JSON parser, URL routing, and (for
+\texttt{pattern}) a regex engine, comfortably three orders of
+magnitude beyond what fits on the MCUs in scope here (DCP's
+device-side runtime measures 27.6\,KB flash and 0.6\,KB RAM on an
+ESP32, Figure~\ref{fig:footprint} below; comparable HTTP/OpenAPI
+stacks need tens of MB of RAM alone). So ``DCP ties OpenAPI'' is
+not a wash --- it is the
+point: DCP delivers the same schema-layer rejection expressiveness as
+a well-written OpenAPI service, in a runtime three orders of magnitude
+smaller, on hardware OpenAPI cannot reach. The protocols that
+\emph{can} reach this hardware --- Raw MCP and IoT-MCP --- sit at
+0--6\,\% across the columns that matter (capability, prompt
+injection), and that is the gap the paper actually closes.
 
 \begin{figure}[h]
 \centering
@@ -469,15 +483,19 @@ we note it here because the empirical study found the gap.
 295~tool calls produced by two LLMs (DeepSeek~V3, Qwen2.5-72B-Instruct,
 both via SiliconFlow) in response to adversarial prompts across six
 categories. Bars are exact percentages over the calls the LLMs actually
-emitted; prompts that did not elicit a tool call are excluded. DCP and
-OpenAPI both reject every \emph{capability escalation} attempt because
-both express per-operation capabilities at the schema layer; MCP-family
-protocols have no such concept and let all of them through. DCP and
-OpenAPI also tie on \emph{prompt injection} after the empirical study
-exposed a missing constraint (string \texttt{pattern} / \texttt{max
-length}) in the DCP \texttt{Param} type, which we added in v0.3.1.
-Reproduce with \texttt{python tools/gen\_llm\_corpus.py 3 \dots}
-followed by \texttt{python tools/bench\_hallucination\_empirical.py}.}
+emitted; prompts that did not elicit a tool call are excluded. DCP's
+target alternatives are Raw MCP and IoT-MCP (also embedded-targeted):
+DCP closes the capability-escalation column (100\,\% vs 0\,\%) and the
+prompt-injection column (50\,\% vs 5\,\%) against both. OpenAPI is
+included only as an upper-bound reference for what a server-side
+validation layer can structurally express --- it is not deployable on
+the MCU footprints (27.6\,KB flash / 0.6\,KB RAM) DCP targets. DCP
+matching OpenAPI on every column is the result, not a wash: same
+expressiveness, three orders of magnitude smaller runtime. The DCP
+\texttt{Param} type gained string \texttt{pattern} / \texttt{max\_
+length} constraints in v0.3.1 in response to this experiment exposing
+a gap on \emph{prompt injection}; both numbers in the figure use the
+v0.3.1 Bridge.}
 \label{fig:halluc}
 \end{figure}
 
