@@ -18,6 +18,9 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <Arduino_GFX_Library.h>
+// TouchLib needs the chip model selected before the header is included.
+// The T-Panel S3's CST3240 is a mutual-capacitance controller.
+#define TOUCH_MODULES_CST_MUTUAL
 #include "TouchLib.h"
 #include "driver/twai.h"
 
@@ -30,7 +33,12 @@
 #define LCD_BL        14
 #define CAN_TX        16
 #define CAN_RX        15
-#define BUZZER_PIN    19           // user-added: solder piezo or PAM8403 + 8Ω here
+// ⚠ Pin 19/20 on ESP32-S3 are USB D-/D+. Driving them as a GPIO output
+// disconnects the native USB-Serial/JTAG and makes the COM port vanish.
+// Anything user-added (buzzer, extra LED, etc.) on this board should be
+// on a pin that the RGB display, I2C, CAN, touch, PSRAM, and USB are
+// not already using. GPIO 38 is free and PWM-capable.
+#define BUZZER_PIN    38           // user-added: solder piezo or PAM8403 + 8Ω here
 #define DCP_UART      Serial1      // dedicated UART for the DCP host link
 #define DCP_TX        47           // ⚠ shared with ESP32-H2 RX; if conflict use 3/8
 #define DCP_RX        48           // ⚠ shared with ESP32-H2 TX; same caveat
@@ -420,7 +428,8 @@ void setup() {
     Serial.begin(115200);   // bring-up over USB-CDC first; switch to Serial1 for prod
     delay(200);
 
-    Wire.begin(IIC_SDA, IIC_SCL, 800000);
+    // XL9535 (TCA9535) is rated max 400kHz — 800kHz was unreliable.
+    Wire.begin(IIC_SDA, IIC_SCL, 400000);
 
     ledcAttach(LCD_BL, PWM_BL_HZ, PWM_BITS);
     ledcWrite(LCD_BL, 128);    // ~50% backlight
