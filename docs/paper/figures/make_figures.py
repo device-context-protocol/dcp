@@ -334,15 +334,28 @@ def fig_hallucination():
     ax.set_axisbelow(True)
 
     fig.subplots_adjust(bottom=0.27, top=0.88, left=0.08, right=0.98)
-    n = data["n_per_category"]
-    fig.text(0.5, 0.02,
-             f"Measured. {n} adversarial cases per category x {len(data['categories'])} "
-             f"categories = {n * len(data['categories'])} total, each run through every "
-             "protocol's schema-layer validator (jsonschema for MCP /\nIoT-MCP / OpenAPI, "
-             "the real dcp.bridge.Bridge for DCP). A call is "
-             "\"rejected\" iff the protocol's host-side validation refuses it "
-             "before any\nbyte reaches the device. See tools/bench_hallucination.py "
-             "for the corpus and the per-protocol schemas used.",
+    n_per = data["n_per_category"]
+    if isinstance(n_per, dict):
+        # Empirical: real LLM corpus, per-category sample counts vary
+        # because some prompts don't elicit a tool call.
+        n_total = sum(n_per.values())
+        ns_str = " / ".join(str(n_per[c]) for c in data["categories"])
+        footer = (f"Empirical. {n_total} tool calls produced by "
+                  f"{data.get('llm_model', 'LLM')} in response to "
+                  f"adversarial prompts across {len(data['categories'])} "
+                  "categories ({ns_str} per category respectively),\nthen "
+                  "fed to each protocol's schema-layer validator "
+                  "(jsonschema for MCP / IoT-MCP / OpenAPI, the real "
+                  "dcp.bridge.Bridge for DCP).\nCorpus generation in "
+                  "tools/gen_llm_corpus.py; validation in "
+                  "tools/bench_hallucination_empirical.py.").format(ns_str=ns_str)
+    else:
+        # Synthetic fallback: legacy synthetic corpus with uniform n per cat.
+        footer = (f"Measured. {n_per} adversarial cases per category x "
+                  f"{len(data['categories'])} categories = "
+                  f"{n_per * len(data['categories'])} total, each run "
+                  "through every protocol's schema-layer validator.")
+    fig.text(0.5, 0.02, footer,
              ha="center", va="bottom", fontsize=7.0, color="#666", style="italic")
     save(fig, "hallucination")
 
