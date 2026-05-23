@@ -287,25 +287,31 @@ def fig_footprint():
 # Figure 4 — Hallucination rejection rate (the killer experiment).
 
 def fig_hallucination():
-    fig, ax = plt.subplots(figsize=(9.0, 4.0))
+    """Bars are measured rejection rates over a 150-case adversarial corpus
+    (25 cases per category x 6 categories), produced by
+    tools/bench_hallucination.py. The figure reads hallucination_data.json
+    — it is never hand-typed."""
+    data_path = HERE / "hallucination_data.json"
+    if not data_path.exists():
+        raise FileNotFoundError(
+            "hallucination_data.json missing — run "
+            "`python tools/bench_hallucination.py` first.")
+    data = json.loads(data_path.read_text(encoding="utf-8"))
 
-    attacks = [
-        "Out-of-range\nvalue",
-        "Unit\nconfusion",
-        "Wrong\ntype",
-        "Unknown\nintent",
-        "Capability\nescalation",
-        "Prompt\ninjection",
-    ]
-    series = {
-        "DCP":     [100, 100, 100, 100, 100, 60],
-        "IoT-MCP": [60,   10,  95, 100,   0,  0],
-        "Raw MCP": [30,    5,  95, 100,   0,  0],
-        "OpenAPI": [70,    5, 100, 100,  50,  5],
+    category_labels = {
+        "out_of_range":          "Out-of-range\nvalue",
+        "unit_confusion":        "Unit\nconfusion",
+        "wrong_type":            "Wrong\ntype",
+        "unknown_intent":        "Unknown\nintent",
+        "capability_escalation": "Capability\nescalation",
+        "prompt_injection":      "Prompt\ninjection",
     }
+    attacks = [category_labels[c] for c in data["categories"]]
+    series = {p: data["rejection_pct"][p] for p in data["protocols"]}
     colors = {"DCP": C["dcp"], "IoT-MCP": C["iotmcp"],
               "Raw MCP": C["rawmcp"], "OpenAPI": C["openapi"]}
 
+    fig, ax = plt.subplots(figsize=(9.0, 4.0))
     x = np.arange(len(attacks))
     width = 0.2
     for i, (name, vals) in enumerate(series.items()):
@@ -327,15 +333,17 @@ def fig_hallucination():
     ax.grid(axis="y", linewidth=0.4, alpha=0.5)
     ax.set_axisbelow(True)
 
-    # Give the figure enough bottom margin for the footnote sitting below the
-    # x-axis category labels.
     fig.subplots_adjust(bottom=0.27, top=0.88, left=0.08, right=0.98)
+    n = data["n_per_category"]
     fig.text(0.5, 0.02,
-             "Synthetic data for illustration. Values reflect what each protocol's "
-             "schema is expressive enough to reject at the host\n"
-             "before any byte reaches the device — they do NOT account for "
-             "hand-written application code layered on top.",
-             ha="center", va="bottom", fontsize=7.5, color="#666", style="italic")
+             f"Measured. {n} adversarial cases per category x {len(data['categories'])} "
+             f"categories = {n * len(data['categories'])} total, each run through every "
+             "protocol's schema-layer validator (jsonschema for MCP /\nIoT-MCP / OpenAPI, "
+             "the real dcp.bridge.Bridge for DCP). A call is "
+             "\"rejected\" iff the protocol's host-side validation refuses it "
+             "before any\nbyte reaches the device. See tools/bench_hallucination.py "
+             "for the corpus and the per-protocol schemas used.",
+             ha="center", va="bottom", fontsize=7.0, color="#666", style="italic")
     save(fig, "hallucination")
 
 

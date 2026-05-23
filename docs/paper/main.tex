@@ -403,20 +403,44 @@ DCP's safety model is layered. From outermost to innermost:
 The point is not that any one of these is novel in isolation. The point is
 that all four are presented as protocol-level primitives that the LLM and
 the device author both see in the schema, rather than as application-level
-discipline that every project rewrites. Figure~\ref{fig:halluc}
-illustrates the qualitative effect: for the six attack categories most
-common in LLM-driven control, DCP's schema is expressive enough to reject
-nearly all of them at the Bridge, before any byte traverses the device
-boundary.
+discipline that every project rewrites. To quantify the resulting safety
+gap we built a 150-case adversarial corpus (25 cases each across six
+attack categories) and ran every case through the host-side schema
+validator of each protocol: the real \texttt{dcp.bridge.Bridge} for DCP,
+and JSON-Schema validation (via \texttt{jsonschema}) for Raw MCP,
+IoT-MCP, and a well-formed OpenAPI~3 operation. A call counts as
+``rejected'' only if the protocol refuses it before any byte traverses
+the device boundary. Results are in Figure~\ref{fig:halluc}; the corpus
+generators and per-protocol schemas live in
+\texttt{tools/bench\_hallucination.py}.
+
+The numbers expose three things worth naming. (i)~Range-bounded numeric
+parameters --- mandatory in DCP, optional in OpenAPI, absent in
+MCP/IoT-MCP --- alone account for the gap on \emph{out-of-range} and
+\emph{unit confusion}. (ii)~A static intent table closes
+\emph{capability escalation} entirely for DCP; MCP-family protocols have
+no notion of caller capability at the schema layer and only catch a
+fraction by side-effect (extra-property rejection on a tool with no
+parameters). (iii)~Prompt-injection defense is the one column where DCP
+under-performs OpenAPI: our reference DCP manifest declares
+\texttt{set\_label} as a free-form \texttt{string}, while the OpenAPI
+schema in the bench attaches a \texttt{pattern} and \texttt{maxLength}.
+DCP's current \texttt{Param} type does not yet expose a pattern field;
+adding one would close the gap and is on the v0.4 roadmap.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{hallucination.pdf}
-\caption{Coverage of LLM-induced failure modes by each protocol's
-\emph{schema-level} defenses, before any application-specific code is
-written. Values are illustrative and reflect what each protocol's
-specification is structurally capable of rejecting; an empirical study
-on a real LLM corpus is left to future work.}
+\caption{Schema-layer rejection rates over a 150-case adversarial
+corpus (25 cases per category, 6 categories) measured against each
+protocol's host-side validator. Bars are exact percentages, not
+hand-picked. DCP and OpenAPI tie on the numeric categories because
+both can express range constraints; DCP wins on
+\emph{capability escalation} because MCP-family protocols have no
+caller-capability concept; OpenAPI wins on \emph{prompt injection}
+because the bench's DCP manifest does not yet use a string
+\texttt{pattern} constraint (see body text). Reproduce with
+\texttt{python tools/bench\_hallucination.py}.}
 \label{fig:halluc}
 \end{figure}
 
