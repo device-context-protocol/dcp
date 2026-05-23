@@ -113,3 +113,73 @@ def test_safety_rejects_missing_required():
             granted_capabilities={"lamp.write"},
         )
     assert exc.value.status == "range"
+
+
+# v0.3.1 — string max_length + regex pattern constraints.
+
+STRING_SAMPLE = {
+    "dcp": "0.1",
+    "device": {"id": "panel-1", "model": "smart_panel", "vendor": "example.dev"},
+    "intents": [
+        {
+            "name": "set_label",
+            "params": {
+                "text": {
+                    "type": "string",
+                    "max_length": 16,
+                    "pattern": r"[A-Za-z0-9 ]+",
+                },
+            },
+            "capability": "panel.write",
+        }
+    ],
+}
+
+
+def test_param_parses_pattern_and_max_length():
+    m = Manifest.from_dict(STRING_SAMPLE)
+    p = m.intents["set_label"].params["text"]
+    assert p.max_length == 16
+    assert p.pattern == r"[A-Za-z0-9 ]+"
+
+
+def test_safety_accepts_string_within_constraints():
+    m = Manifest.from_dict(STRING_SAMPLE)
+    out = check_call(m.intents["set_label"], {"text": "hello"},
+                     granted_capabilities={"panel.write"})
+    assert out == {"text": "hello"}
+
+
+def test_safety_rejects_string_over_max_length():
+    m = Manifest.from_dict(STRING_SAMPLE)
+    with pytest.raises(SafetyError) as exc:
+        check_call(m.intents["set_label"], {"text": "x" * 100},
+                   granted_capabilities={"panel.write"})
+    assert exc.value.status == "range"
+    assert "max_length" in exc.value.message
+
+
+def test_safety_rejects_string_not_matching_pattern():
+    m = Manifest.from_dict(STRING_SAMPLE)
+    with pytest.raises(SafetyError) as exc:
+        check_call(m.intents["set_label"], {"text": "<script>"},
+                   granted_capabilities={"panel.write"})
+    assert exc.value.status == "range"
+    assert "pattern" in exc.value.message
+
+
+def test_safety_no_string_constraints_means_anything_goes():
+    """A string param without pattern / max_length must still accept anything."""
+    relaxed = {
+        "dcp": "0.1",
+        "device": {"id": "x", "model": "x", "vendor": "x"},
+        "intents": [{
+            "name": "free", "capability": "x",
+            "params": {"text": {"type": "string"}},
+        }],
+    }
+    m = Manifest.from_dict(relaxed)
+    payload = "anything\x00<script>'; DROP TABLE users; " + "A" * 9999
+    out = check_call(m.intents["free"], {"text": payload},
+                     granted_capabilities={"x"})
+    assert out == {"text": payload}

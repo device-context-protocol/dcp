@@ -5,9 +5,23 @@ comes out is either ``SafetyError`` (refused) or a normalized param dict.
 """
 from __future__ import annotations
 
+import re
+
 from dcp.manifest import Intent
 
 _NUMERIC_TYPES = {"float", "int", "duration"}
+
+# Compiled patterns are cached by source string so check_call stays cheap
+# in tight loops (LLM Bridge invocations).
+_PATTERN_CACHE: dict[str, re.Pattern] = {}
+
+
+def _get_pattern(src: str) -> re.Pattern:
+    p = _PATTERN_CACHE.get(src)
+    if p is None:
+        p = re.compile(src)
+        _PATTERN_CACHE[src] = p
+    return p
 
 
 class SafetyError(Exception):
@@ -52,6 +66,19 @@ def check_call(
             lo, hi = param.range
             if value < lo or value > hi:
                 raise SafetyError("range", f"'{name}'={value} outside [{lo}, {hi}]")
+
+        # String-typed constraints: max_length + regex pattern. Both are
+        # opt-in per the manifest; absent constraints mean "anything goes".
+        if param.type == "string" and isinstance(value, str):
+            if param.max_length is not None and len(value) > param.max_length:
+                raise SafetyError(
+                    "range",
+                    f"'{name}' length {len(value)} exceeds max_length {param.max_length}")
+            if param.pattern is not None:
+                if not _get_pattern(param.pattern).fullmatch(value):
+                    raise SafetyError(
+                        "range",
+                        f"'{name}' does not match pattern {param.pattern!r}")
 
         normalized[name] = value
 

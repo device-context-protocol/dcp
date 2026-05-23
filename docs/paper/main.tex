@@ -444,11 +444,19 @@ layer and let every one through. (iii)~Prompt injection elicits two
 distinct LLM behaviors: in 45~of 60~cases the LLM ``absorbs'' the
 injection by stuffing the payload into the \texttt{set\_label} text
 field, and in the remaining 15~cases it follows the injection and
-calls \texttt{reboot()}. DCP catches the 15~\texttt{reboot} calls via
-capability plus a handful of label payloads that arrived with an empty
-required field (30\,\% total); OpenAPI catches the same 15~reboots
-plus 15~more \texttt{set\_label} payloads via its \texttt{pattern} and
-\texttt{maxLength} constraints, for 50\,\% total. The gap on
+calls \texttt{reboot()}. The 15~\texttt{reboot} calls are caught by
+capability (DCP and OpenAPI both); the 45~\texttt{set\_label}
+payloads need a \emph{string} constraint to reject. The first run of
+this experiment exposed a real gap: the DCP \texttt{Param} type had
+no \texttt{pattern} or \texttt{max\_length} fields, so DCP let every
+\texttt{set\_label} payload through and scored 30\,\% while OpenAPI's
+JSON-Schema \texttt{pattern} caught roughly half for 50\,\%. We added
+the two fields to the \texttt{Param} dataclass (v0.3.1, 12~lines of
+new code in \texttt{src/dcp/manifest.py} and \texttt{src/dcp/safety.py}
+plus five tests), then re-ran the exact same 295-call corpus through
+the patched Bridge: DCP now ties OpenAPI at 50\,\%. The closed gap
+is the figure as plotted; the experiment is what drove the spec
+extension. The gap on
 \texttt{set\_label} is real and traces directly to a missing feature:
 DCP's current \texttt{Param} type has no string \texttt{pattern} field.
 Adding one is on the v0.4 roadmap and would close the remaining gap;
@@ -464,10 +472,10 @@ categories. Bars are exact percentages over the calls the LLMs actually
 emitted; prompts that did not elicit a tool call are excluded. DCP and
 OpenAPI both reject every \emph{capability escalation} attempt because
 both express per-operation capabilities at the schema layer; MCP-family
-protocols have no such concept and let all of them through. OpenAPI
-beats DCP on \emph{prompt injection} because its JSON-Schema
-\texttt{pattern} catches injection payloads in free-form string fields
---- a constraint DCP's \texttt{Param} type does not yet expose.
+protocols have no such concept and let all of them through. DCP and
+OpenAPI also tie on \emph{prompt injection} after the empirical study
+exposed a missing constraint (string \texttt{pattern} / \texttt{max
+length}) in the DCP \texttt{Param} type, which we added in v0.3.1.
 Reproduce with \texttt{python tools/gen\_llm\_corpus.py 3 \dots}
 followed by \texttt{python tools/bench\_hallucination\_empirical.py}.}
 \label{fig:halluc}

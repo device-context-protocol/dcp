@@ -38,7 +38,7 @@
       6,
       0,
       100,
-      30
+      50
     ],
     "IoT-MCP": [
       0,
@@ -93,8 +93,8 @@
         "total": 60
       },
       "prompt_injection": {
-        "rejected": 18,
-        "accepted": 42,
+        "rejected": 30,
+        "accepted": 30,
         "total": 60
       }
     },
@@ -230,7 +230,7 @@
             0,
             0,
             100,
-            10
+            50
           ],
           "IoT-MCP": [
             0,
@@ -285,8 +285,8 @@
               "total": 30
             },
             "prompt_injection": {
-              "rejected": 3,
-              "accepted": 27,
+              "rejected": 15,
+              "accepted": 15,
               "total": 30
             }
           },

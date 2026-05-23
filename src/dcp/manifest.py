@@ -17,6 +17,10 @@ class Param:
     unit: str | None = None
     range: tuple[float, float] | None = None
     default: Any = None
+    # Optional constraints for string-typed params. Both are advisory
+    # at the wire layer and enforced at the Bridge in dcp.safety.
+    pattern: str | None = None      # regex (re.fullmatch)
+    max_length: int | None = None   # in characters
 
 
 @dataclass(slots=True)
@@ -89,6 +93,8 @@ def _parse_param(name: str, spec: dict) -> Param:
         unit=spec.get("unit"),
         range=rng,
         default=spec.get("default"),
+        pattern=spec.get("pattern"),
+        max_length=spec.get("max_length") or spec.get("maxLength"),
     )
 
 

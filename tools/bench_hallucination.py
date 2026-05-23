@@ -73,8 +73,13 @@ REF_INTENTS_DCP = [
     Intent(
         name="set_label",
         params={
+            # v0.3.1: string params now support max_length and pattern.
+            # Mirror the constraints the OpenAPI schema in this bench
+            # uses so the comparison is apples-to-apples.
             "text": Param(name="text", type="string", unit=None,
-                          range=None, default=None),
+                          range=None, default=None,
+                          max_length=64,
+                          pattern=r"[A-Za-z0-9 .,!?:;\-_()'\"]+"),
         },
         returns=None,
         capability="lamp.write",
