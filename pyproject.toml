@@ -1,6 +1,6 @@
 [project]
 name = "pydcp"
-version = "0.3.0"
+version = "0.3.1"
 description = "Device Context Protocol — Python reference implementation. A bridge between LLM agents and physical devices. Import as `dcp`."
 readme = "README.md"
 requires-python = ">=3.11"

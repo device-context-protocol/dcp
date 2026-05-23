@@ -8,7 +8,7 @@ from dcp.safety import SafetyError, check_call
 from dcp.simulator import GenericSimulator
 from dcp.wire import WIRE_VERSION, Frame, Kind, intent_id
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 __all__ = [
     "Bridge",

@@ -8,6 +8,54 @@ it reaches 1.0. Pre-1.0 releases may break compatibility.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-24
+
+### Added
+
+- **String parameter constraints** in the manifest: `pattern` (regex,
+  `re.fullmatch`) and `max_length` for `type: string` params. Both
+  optional and backward-compatible — absent constraints mean any
+  string passes. Enforced at the Bridge in `dcp.safety.check_call`;
+  violations raise `SafetyError("range", ...)` and surface as a
+  `range` reply status on the wire. Caught by an empirical study
+  (`tools/gen_llm_corpus.py` + `tools/bench_hallucination_empirical.py`)
+  where 295 real LLM-emitted tool calls across two models exposed a
+  prompt-injection gap that pre-v0.3.1 DCP couldn't close.
+
+### Tools
+
+- `tools/gen_llm_corpus.py` — drive an LLM (DeepSeek V3, Qwen2.5-72B
+  via SiliconFlow) with adversarial prompts, capture the tool calls
+  it emits.
+- `tools/bench_hallucination_empirical.py` — feed the captured corpus
+  through every protocol's host-side validator (DCP, Raw MCP,
+  IoT-MCP, OpenAPI) and produce
+  `docs/paper/figures/hallucination_data.json`.
+- `tools/bench_latency_iotmcp.py` + `firmware/esp32/examples/iotmcp_echo`
+  — apples-to-apples DCP-vs-IoT-MCP latency benchmark on the same
+  ESP32-S3 hardware over the same UART. Result: 15.60 ms vs 15.59 ms
+  median round-trip, within 5 µs of each other; capability scoping
+  and full schema validation add no measurable cost.
+
+### Fixed
+
+- `examples/smart_panel_manifest.yaml` declared `play_tone`'s
+  `duration` as `type: duration`, which `safety._coerce` converts to
+  a Python `float` and Bridge serializes as CBOR float64; the device
+  firmware reads it with `CborReader::read_int()` and rejected every
+  call. Now declared as `type: int` (the underlying unit, `ms`, is
+  naturally integer). The four other example manifests still use
+  `type: duration` and will need the same treatment if they exercise
+  the path.
+- LILYGO T-Panel S3 bring-up: `firmware/esp32/examples/smart_panel`
+  now uses GPIO 38 for the buzzer instead of GPIO 19 (which is
+  ESP32-S3 USB D-, and pin-moding it to OUTPUT killed the native
+  USB-CDC after the first flash). Wire clock dropped from 800 kHz
+  to 400 kHz to stay inside the XL9535 GPIO expander's I2C max.
+  `TouchLib`'s CST3240 chip-model define added.
+
+## [0.3.0] - 2026-05-18
+
 ### Added
 
 - **Wire-level HMAC-SHA256** (`Frame.encode(wire_secret=...)` / `decode(...)`):
