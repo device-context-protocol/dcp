@@ -336,21 +336,22 @@ def fig_hallucination():
     fig.subplots_adjust(bottom=0.27, top=0.88, left=0.08, right=0.98)
     n_per = data["n_per_category"]
     if isinstance(n_per, dict):
-        # Empirical: real LLM corpus, per-category sample counts vary
-        # because some prompts don't elicit a tool call.
         n_total = sum(n_per.values())
-        ns_str = " / ".join(str(n_per[c]) for c in data["categories"])
-        footer = (f"Empirical. {n_total} tool calls produced by "
-                  f"{data.get('llm_model', 'LLM')} in response to "
-                  f"adversarial prompts across {len(data['categories'])} "
-                  "categories ({ns_str} per category respectively),\nthen "
-                  "fed to each protocol's schema-layer validator "
-                  "(jsonschema for MCP / IoT-MCP / OpenAPI, the real "
-                  "dcp.bridge.Bridge for DCP).\nCorpus generation in "
-                  "tools/gen_llm_corpus.py; validation in "
-                  "tools/bench_hallucination_empirical.py.").format(ns_str=ns_str)
+        models = data.get("usable_models") or [data.get("llm_model", "LLM")]
+        short_models = [m.split("/")[-1] for m in models]
+        models_str = " + ".join(short_models)
+        footer = (
+            f"Empirical. {n_total} tool calls aggregated across "
+            f"{len(short_models)} LLM(s) ({models_str}) producing tool "
+            f"calls in response to adversarial prompts across "
+            f"{len(data['categories'])} attack\ncategories. Each call "
+            "is fed to every protocol's host-side validator (the real "
+            "dcp.bridge.Bridge for DCP; jsonschema for MCP / IoT-MCP / "
+            "OpenAPI).\nCorpus in tools/gen_llm_corpus.py + "
+            "llm_corpus.json; aggregation in "
+            "tools/bench_hallucination_empirical.py."
+        )
     else:
-        # Synthetic fallback: legacy synthetic corpus with uniform n per cat.
         footer = (f"Measured. {n_per} adversarial cases per category x "
                   f"{len(data['categories'])} categories = "
                   f"{n_per * len(data['categories'])} total, each run "

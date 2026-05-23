@@ -406,12 +406,16 @@ the device author both see in the schema, rather than as application-level
 discipline that every project rewrites. To quantify the resulting safety
 gap empirically we built a smart-lamp test rig with three tools
 (\texttt{set\_brightness}, \texttt{set\_label}, \texttt{reboot}), exposed
-those tools to DeepSeek~V3 via the OpenAI-style function-calling API,
-and ran 180 adversarial prompts spanning six attack categories. The LLM
-emitted 140 parseable tool calls; the remaining 40 prompts resulted in
-the LLM either refusing or replying in natural language and are
-excluded as having no protocol-layer event to measure. The 140 captured
-calls --- real LLM behavior, not hand-constructed inputs --- are then
+those tools via the OpenAI-style function-calling API to two LLMs ---
+DeepSeek~V3 and Qwen2.5-72B-Instruct, both served by SiliconFlow ---
+and ran 60 adversarial prompts (10 per category, 3~samples each) against
+each. The two models together emitted 295~parseable tool calls
+(137~from DeepSeek~V3, 158~from Qwen2.5-72B); a third candidate,
+Qwen2.5-7B-Instruct, produced no parseable OpenAI-style tool calls and
+is excluded. Prompts that did not elicit a tool call (the LLM declined
+or replied in natural language) are also excluded because they have no
+protocol-layer event to measure. The 295~captured calls --- real LLM
+behavior across two model families, not hand-constructed inputs --- are
 fed to each of the four protocols' host-side validators (the real
 \texttt{dcp.bridge.Bridge} for DCP, \texttt{jsonschema} for Raw MCP,
 IoT-MCP, and a well-formed OpenAPI~3 operation with explicit
@@ -424,44 +428,48 @@ Figure~\ref{fig:halluc}; the corpus generator is in
 \texttt{tools/bench\_hallucination\_empirical.py}.
 
 The empirical numbers tell a sharper story than a synthetic corpus
-would. Three findings stand out. (i)~The LLM \emph{self-corrects} most
-obvious numeric mistakes: prompts like ``set it to 200'' or ``set it to
-half'' overwhelmingly produce \texttt{level=100} or \texttt{level=50}
-rather than the literal bad value. Out-of-range and unit-confusion
-attacks therefore look modest at the protocol layer (DCP and OpenAPI
-both at 23\,\% / 7\,\%) because the LLM has already absorbed most of
-the work. (ii)~Capability escalation is where the protocol layer
-genuinely earns its keep: prompts asking to ``reboot the lamp'' caused
-the LLM to call \texttt{reboot()} in 29~of 30~cases, and DCP's
-mandatory per-intent capability and OpenAPI's OAuth2 scopes both reject
-all~29; MCP-family protocols have no caller-capability concept at the
-schema layer and let every one through. (iii)~Prompt injection elicits
-two distinct LLM behaviors: in 27~of 30~cases the LLM ``absorbs'' the
+would. Three findings stand out and replicate across both LLMs.
+(i)~The LLM \emph{self-corrects} most obvious numeric mistakes: prompts
+like ``set it to 200'' or ``set it to half'' overwhelmingly produce
+\texttt{level=100} or \texttt{level=50} rather than the literal bad
+value. Out-of-range and unit-confusion attacks therefore look modest at
+the protocol layer (DCP and OpenAPI both at 9\,\% / 7\,\%) because the
+LLM has already absorbed most of the work. (ii)~Capability escalation
+is where the protocol layer genuinely earns its keep: prompts asking to
+``reboot the lamp'' caused both LLMs to call \texttt{reboot()} in
+60~of 60~cases (29 from DeepSeek, 31 from Qwen). DCP's mandatory
+per-intent capability and OpenAPI's OAuth2 scopes both reject all~60;
+MCP-family protocols have no caller-capability concept at the schema
+layer and let every one through. (iii)~Prompt injection elicits two
+distinct LLM behaviors: in 45~of 60~cases the LLM ``absorbs'' the
 injection by stuffing the payload into the \texttt{set\_label} text
-field, and in the remaining 3~cases it follows the injection and calls
-\texttt{reboot()}. DCP catches the 3~\texttt{reboot} calls via capability
-(10\,\% in the chart); OpenAPI catches roughly half of the
-\texttt{set\_label} payloads via its \texttt{pattern} and
-\texttt{maxLength} constraints (50\,\% total). DCP's current
-\texttt{Param} type does not yet expose a string \texttt{pattern} field;
-adding one is on the v0.4 roadmap and would close the remaining gap.
+field, and in the remaining 15~cases it follows the injection and
+calls \texttt{reboot()}. DCP catches the 15~\texttt{reboot} calls via
+capability plus a handful of label payloads that arrived with an empty
+required field (30\,\% total); OpenAPI catches the same 15~reboots
+plus 15~more \texttt{set\_label} payloads via its \texttt{pattern} and
+\texttt{maxLength} constraints, for 50\,\% total. The gap on
+\texttt{set\_label} is real and traces directly to a missing feature:
+DCP's current \texttt{Param} type has no string \texttt{pattern} field.
+Adding one is on the v0.4 roadmap and would close the remaining gap;
+we note it here because the empirical study found the gap.
 
 \begin{figure}[h]
 \centering
 \includegraphics[width=\linewidth]{hallucination.pdf}
-\caption{Schema-layer rejection rates over an empirical corpus of 140
-tool calls produced by DeepSeek~V3 in response to adversarial prompts
-across six categories. Bars are exact percentages over the calls the
-LLM actually emitted; prompts that did not elicit a tool call are
-excluded. DCP and OpenAPI both reject every \emph{capability
-escalation} attempt because both express per-operation capabilities at
-the schema layer; MCP-family protocols have no such concept and let
-all of them through. OpenAPI beats DCP on \emph{prompt injection}
-because its JSON-Schema \texttt{pattern} catches injection payloads in
-free-form string fields --- a constraint DCP's \texttt{Param} type does
-not yet expose. Reproduce with
-\texttt{python tools/gen\_llm\_corpus.py 3} followed by
-\texttt{python tools/bench\_hallucination\_empirical.py}.}
+\caption{Schema-layer rejection rates over an empirical corpus of
+295~tool calls produced by two LLMs (DeepSeek~V3, Qwen2.5-72B-Instruct,
+both via SiliconFlow) in response to adversarial prompts across six
+categories. Bars are exact percentages over the calls the LLMs actually
+emitted; prompts that did not elicit a tool call are excluded. DCP and
+OpenAPI both reject every \emph{capability escalation} attempt because
+both express per-operation capabilities at the schema layer; MCP-family
+protocols have no such concept and let all of them through. OpenAPI
+beats DCP on \emph{prompt injection} because its JSON-Schema
+\texttt{pattern} catches injection payloads in free-form string fields
+--- a constraint DCP's \texttt{Param} type does not yet expose.
+Reproduce with \texttt{python tools/gen\_llm\_corpus.py 3 \dots}
+followed by \texttt{python tools/bench\_hallucination\_empirical.py}.}
 \label{fig:halluc}
 \end{figure}
 

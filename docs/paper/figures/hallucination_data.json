@@ -1,6 +1,20 @@
 {
   "source": "llm_corpus.json",
-  "llm_model": "deepseek-ai/DeepSeek-V3",
+  "models": [
+    "deepseek-ai/DeepSeek-V3",
+    "Qwen/Qwen2.5-72B-Instruct",
+    "Qwen/Qwen2.5-7B-Instruct"
+  ],
+  "usable_models": [
+    "deepseek-ai/DeepSeek-V3",
+    "Qwen/Qwen2.5-72B-Instruct"
+  ],
+  "protocols": [
+    "DCP",
+    "IoT-MCP",
+    "Raw MCP",
+    "OpenAPI"
+  ],
   "categories": [
     "out_of_range",
     "unit_confusion",
@@ -9,49 +23,43 @@
     "capability_escalation",
     "prompt_injection"
   ],
-  "protocols": [
-    "DCP",
-    "IoT-MCP",
-    "Raw MCP",
-    "OpenAPI"
-  ],
   "n_per_category": {
-    "out_of_range": 26,
-    "unit_confusion": 27,
-    "wrong_type": 22,
-    "unknown_intent": 6,
-    "capability_escalation": 29,
-    "prompt_injection": 30
+    "out_of_range": 55,
+    "unit_confusion": 57,
+    "wrong_type": 49,
+    "unknown_intent": 14,
+    "capability_escalation": 60,
+    "prompt_injection": 60
   },
   "rejection_pct": {
     "DCP": [
-      23,
+      9,
       7,
-      0,
+      6,
       0,
       100,
-      10
+      30
     ],
     "IoT-MCP": [
       0,
       0,
+      6,
       0,
       0,
-      0,
-      0
+      5
     ],
     "Raw MCP": [
       0,
       0,
+      6,
       0,
       0,
-      0,
-      0
+      5
     ],
     "OpenAPI": [
-      23,
+      9,
       7,
-      0,
+      6,
       0,
       100,
       50
@@ -60,131 +68,531 @@
   "raw_counts": {
     "DCP": {
       "out_of_range": {
-        "rejected": 6,
-        "accepted": 20,
-        "total": 26
+        "rejected": 5,
+        "accepted": 50,
+        "total": 55
       },
       "unit_confusion": {
-        "rejected": 2,
-        "accepted": 25,
-        "total": 27
+        "rejected": 4,
+        "accepted": 53,
+        "total": 57
       },
       "wrong_type": {
-        "rejected": 0,
-        "accepted": 22,
-        "total": 22
+        "rejected": 3,
+        "accepted": 46,
+        "total": 49
       },
       "unknown_intent": {
         "rejected": 0,
-        "accepted": 6,
-        "total": 6
+        "accepted": 14,
+        "total": 14
       },
       "capability_escalation": {
-        "rejected": 29,
+        "rejected": 60,
         "accepted": 0,
-        "total": 29
+        "total": 60
       },
       "prompt_injection": {
-        "rejected": 3,
-        "accepted": 27,
-        "total": 30
+        "rejected": 18,
+        "accepted": 42,
+        "total": 60
       }
     },
     "IoT-MCP": {
       "out_of_range": {
         "rejected": 0,
-        "accepted": 26,
-        "total": 26
+        "accepted": 55,
+        "total": 55
       },
       "unit_confusion": {
         "rejected": 0,
-        "accepted": 27,
-        "total": 27
+        "accepted": 57,
+        "total": 57
       },
       "wrong_type": {
-        "rejected": 0,
-        "accepted": 22,
-        "total": 22
+        "rejected": 3,
+        "accepted": 46,
+        "total": 49
       },
       "unknown_intent": {
         "rejected": 0,
-        "accepted": 6,
-        "total": 6
+        "accepted": 14,
+        "total": 14
       },
       "capability_escalation": {
         "rejected": 0,
-        "accepted": 29,
-        "total": 29
+        "accepted": 60,
+        "total": 60
       },
       "prompt_injection": {
-        "rejected": 0,
-        "accepted": 30,
-        "total": 30
+        "rejected": 3,
+        "accepted": 57,
+        "total": 60
       }
     },
     "Raw MCP": {
       "out_of_range": {
         "rejected": 0,
-        "accepted": 26,
-        "total": 26
+        "accepted": 55,
+        "total": 55
       },
       "unit_confusion": {
         "rejected": 0,
-        "accepted": 27,
-        "total": 27
+        "accepted": 57,
+        "total": 57
       },
       "wrong_type": {
-        "rejected": 0,
-        "accepted": 22,
-        "total": 22
+        "rejected": 3,
+        "accepted": 46,
+        "total": 49
       },
       "unknown_intent": {
         "rejected": 0,
-        "accepted": 6,
-        "total": 6
+        "accepted": 14,
+        "total": 14
       },
       "capability_escalation": {
         "rejected": 0,
-        "accepted": 29,
-        "total": 29
+        "accepted": 60,
+        "total": 60
       },
       "prompt_injection": {
-        "rejected": 0,
-        "accepted": 30,
-        "total": 30
+        "rejected": 3,
+        "accepted": 57,
+        "total": 60
       }
     },
     "OpenAPI": {
       "out_of_range": {
-        "rejected": 6,
-        "accepted": 20,
-        "total": 26
+        "rejected": 5,
+        "accepted": 50,
+        "total": 55
       },
       "unit_confusion": {
-        "rejected": 2,
-        "accepted": 25,
-        "total": 27
+        "rejected": 4,
+        "accepted": 53,
+        "total": 57
       },
       "wrong_type": {
-        "rejected": 0,
-        "accepted": 22,
-        "total": 22
+        "rejected": 3,
+        "accepted": 46,
+        "total": 49
       },
       "unknown_intent": {
         "rejected": 0,
-        "accepted": 6,
-        "total": 6
+        "accepted": 14,
+        "total": 14
       },
       "capability_escalation": {
-        "rejected": 29,
+        "rejected": 60,
         "accepted": 0,
-        "total": 29
+        "total": 60
       },
       "prompt_injection": {
-        "rejected": 15,
-        "accepted": 15,
-        "total": 30
+        "rejected": 30,
+        "accepted": 30,
+        "total": 60
       }
+    }
+  },
+  "per_model": {
+    "deepseek-ai/DeepSeek-V3": {
+      "total_parsed": 137,
+      "n_per_category": {
+        "out_of_range": 25,
+        "unit_confusion": 27,
+        "wrong_type": 19,
+        "unknown_intent": 6,
+        "capability_escalation": 30,
+        "prompt_injection": 30
+      },
+      "measurements": {
+        "categories": [
+          "out_of_range",
+          "unit_confusion",
+          "wrong_type",
+          "unknown_intent",
+          "capability_escalation",
+          "prompt_injection"
+        ],
+        "n_per_category": {
+          "out_of_range": 25,
+          "unit_confusion": 27,
+          "wrong_type": 19,
+          "unknown_intent": 6,
+          "capability_escalation": 30,
+          "prompt_injection": 30
+        },
+        "rejection_pct": {
+          "DCP": [
+            20,
+            15,
+            0,
+            0,
+            100,
+            10
+          ],
+          "IoT-MCP": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "Raw MCP": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "OpenAPI": [
+            20,
+            15,
+            0,
+            0,
+            100,
+            50
+          ]
+        },
+        "raw_counts": {
+          "DCP": {
+            "out_of_range": {
+              "rejected": 5,
+              "accepted": 20,
+              "total": 25
+            },
+            "unit_confusion": {
+              "rejected": 4,
+              "accepted": 23,
+              "total": 27
+            },
+            "wrong_type": {
+              "rejected": 0,
+              "accepted": 19,
+              "total": 19
+            },
+            "unknown_intent": {
+              "rejected": 0,
+              "accepted": 6,
+              "total": 6
+            },
+            "capability_escalation": {
+              "rejected": 30,
+              "accepted": 0,
+              "total": 30
+            },
+            "prompt_injection": {
+              "rejected": 3,
+              "accepted": 27,
+              "total": 30
+            }
+          },
+          "IoT-MCP": {
+            "out_of_range": {
+              "rejected": 0,
+              "accepted": 25,
+              "total": 25
+            },
+            "unit_confusion": {
+              "rejected": 0,
+              "accepted": 27,
+              "total": 27
+            },
+            "wrong_type": {
+              "rejected": 0,
+              "accepted": 19,
+              "total": 19
+            },
+            "unknown_intent": {
+              "rejected": 0,
+              "accepted": 6,
+              "total": 6
+            },
+            "capability_escalation": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "prompt_injection": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            }
+          },
+          "Raw MCP": {
+            "out_of_range": {
+              "rejected": 0,
+              "accepted": 25,
+              "total": 25
+            },
+            "unit_confusion": {
+              "rejected": 0,
+              "accepted": 27,
+              "total": 27
+            },
+            "wrong_type": {
+              "rejected": 0,
+              "accepted": 19,
+              "total": 19
+            },
+            "unknown_intent": {
+              "rejected": 0,
+              "accepted": 6,
+              "total": 6
+            },
+            "capability_escalation": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "prompt_injection": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            }
+          },
+          "OpenAPI": {
+            "out_of_range": {
+              "rejected": 5,
+              "accepted": 20,
+              "total": 25
+            },
+            "unit_confusion": {
+              "rejected": 4,
+              "accepted": 23,
+              "total": 27
+            },
+            "wrong_type": {
+              "rejected": 0,
+              "accepted": 19,
+              "total": 19
+            },
+            "unknown_intent": {
+              "rejected": 0,
+              "accepted": 6,
+              "total": 6
+            },
+            "capability_escalation": {
+              "rejected": 30,
+              "accepted": 0,
+              "total": 30
+            },
+            "prompt_injection": {
+              "rejected": 15,
+              "accepted": 15,
+              "total": 30
+            }
+          }
+        }
+      }
+    },
+    "Qwen/Qwen2.5-72B-Instruct": {
+      "total_parsed": 158,
+      "n_per_category": {
+        "out_of_range": 30,
+        "unit_confusion": 30,
+        "wrong_type": 30,
+        "unknown_intent": 8,
+        "capability_escalation": 30,
+        "prompt_injection": 30
+      },
+      "measurements": {
+        "categories": [
+          "out_of_range",
+          "unit_confusion",
+          "wrong_type",
+          "unknown_intent",
+          "capability_escalation",
+          "prompt_injection"
+        ],
+        "n_per_category": {
+          "out_of_range": 30,
+          "unit_confusion": 30,
+          "wrong_type": 30,
+          "unknown_intent": 8,
+          "capability_escalation": 30,
+          "prompt_injection": 30
+        },
+        "rejection_pct": {
+          "DCP": [
+            0,
+            0,
+            10,
+            0,
+            100,
+            50
+          ],
+          "IoT-MCP": [
+            0,
+            0,
+            10,
+            0,
+            0,
+            10
+          ],
+          "Raw MCP": [
+            0,
+            0,
+            10,
+            0,
+            0,
+            10
+          ],
+          "OpenAPI": [
+            0,
+            0,
+            10,
+            0,
+            100,
+            50
+          ]
+        },
+        "raw_counts": {
+          "DCP": {
+            "out_of_range": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "unit_confusion": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "wrong_type": {
+              "rejected": 3,
+              "accepted": 27,
+              "total": 30
+            },
+            "unknown_intent": {
+              "rejected": 0,
+              "accepted": 8,
+              "total": 8
+            },
+            "capability_escalation": {
+              "rejected": 30,
+              "accepted": 0,
+              "total": 30
+            },
+            "prompt_injection": {
+              "rejected": 15,
+              "accepted": 15,
+              "total": 30
+            }
+          },
+          "IoT-MCP": {
+            "out_of_range": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "unit_confusion": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "wrong_type": {
+              "rejected": 3,
+              "accepted": 27,
+              "total": 30
+            },
+            "unknown_intent": {
+              "rejected": 0,
+              "accepted": 8,
+              "total": 8
+            },
+            "capability_escalation": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "prompt_injection": {
+              "rejected": 3,
+              "accepted": 27,
+              "total": 30
+            }
+          },
+          "Raw MCP": {
+            "out_of_range": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "unit_confusion": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "wrong_type": {
+              "rejected": 3,
+              "accepted": 27,
+              "total": 30
+            },
+            "unknown_intent": {
+              "rejected": 0,
+              "accepted": 8,
+              "total": 8
+            },
+            "capability_escalation": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "prompt_injection": {
+              "rejected": 3,
+              "accepted": 27,
+              "total": 30
+            }
+          },
+          "OpenAPI": {
+            "out_of_range": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "unit_confusion": {
+              "rejected": 0,
+              "accepted": 30,
+              "total": 30
+            },
+            "wrong_type": {
+              "rejected": 3,
+              "accepted": 27,
+              "total": 30
+            },
+            "unknown_intent": {
+              "rejected": 0,
+              "accepted": 8,
+              "total": 8
+            },
+            "capability_escalation": {
+              "rejected": 30,
+              "accepted": 0,
+              "total": 30
+            },
+            "prompt_injection": {
+              "rejected": 15,
+              "accepted": 15,
+              "total": 30
+            }
+          }
+        }
+      }
+    },
+    "Qwen/Qwen2.5-7B-Instruct": {
+      "total_parsed": 0,
+      "n_per_category": {
+        "out_of_range": 0,
+        "unit_confusion": 0,
+        "wrong_type": 0,
+        "unknown_intent": 0,
+        "capability_escalation": 0,
+        "prompt_injection": 0
+      },
+      "measurements": null
     }
   }
 }

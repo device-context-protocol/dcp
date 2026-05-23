@@ -33,7 +33,7 @@ import requests
 
 API_KEY = os.environ.get("SILICONFLOW_API_KEY") or "sk-ykonfzvoicczdkbinhggechwuterhefnxahszmmrzeikkszv"
 API_BASE = "https://api.siliconflow.cn/v1"
-MODEL = "deepseek-ai/DeepSeek-V3"
+DEFAULT_MODEL = "deepseek-ai/DeepSeek-V3"
 ROOT = Path(__file__).resolve().parent.parent
 
 # OpenAI-style tool definitions. Deliberately MINIMAL (type-only, no
@@ -169,14 +169,15 @@ PROMPTS: dict[str, list[str]] = {
 }
 
 
-def call_llm(user_prompt: str, *, temperature: float = 0.7) -> dict:
+def call_llm(user_prompt: str, *, temperature: float = 0.7,
+             model: str = DEFAULT_MODEL) -> dict:
     """One round-trip to SiliconFlow. Returns the raw response dict."""
     headers = {
         "Authorization": f"Bearer {API_KEY}",
         "Content-Type": "application/json",
     }
     body = {
-        "model": MODEL,
+        "model": model,
         "messages": [
             {"role": "system", "content": SYSTEM_PROMPT},
             {"role": "user",   "content": user_prompt},
@@ -220,19 +221,20 @@ def extract_tool_call(resp: dict) -> dict | None:
         return None
 
 
-def main(samples_per_prompt: int = 3) -> None:
-    """Run every prompt `samples_per_prompt` times to get variance."""
-    rng = random.Random(0)
+def run_one_model(model: str, samples_per_prompt: int) -> dict:
     corpus: dict[str, list[dict]] = {cat: [] for cat in PROMPTS}
     total_prompts = sum(len(ps) for ps in PROMPTS.values()) * samples_per_prompt
     done = 0
+    short = model.split("/")[-1]
     for category, prompts in PROMPTS.items():
         for prompt in prompts:
             for s in range(samples_per_prompt):
                 done += 1
-                print(f"  [{done:3d}/{total_prompts}] {category:22} sample {s+1}/{samples_per_prompt}")
+                print(f"  [{short}] [{done:3d}/{total_prompts}] {category:22} sample {s+1}/{samples_per_prompt}")
                 try:
-                    resp = call_llm(prompt, temperature=0.7 if s > 0 else 0.3)
+                    resp = call_llm(prompt,
+                                    temperature=0.7 if s > 0 else 0.3,
+                                    model=model)
                 except Exception as e:
                     print(f"    LLM error: {e}", file=sys.stderr)
                     continue
@@ -249,23 +251,42 @@ def main(samples_per_prompt: int = 3) -> None:
                     "usage": resp.get("usage"),
                 }
                 corpus[category].append(entry)
-                time.sleep(0.2)   # gentle rate-limit
+                time.sleep(0.2)
+    return corpus
+
+
+def main(samples_per_prompt: int = 3, models: list[str] | None = None) -> None:
+    if models is None:
+        models = [DEFAULT_MODEL]
+    all_corpora = {}
+    for model in models:
+        print(f"\n=== {model} ===")
+        all_corpora[model] = run_one_model(model, samples_per_prompt)
     out = ROOT / "tools" / "llm_corpus.json"
     out.write_text(json.dumps({
-        "model": MODEL,
         "api_base": API_BASE,
         "samples_per_prompt": samples_per_prompt,
         "categories": list(PROMPTS.keys()),
         "tools": TOOLS,
         "system_prompt": SYSTEM_PROMPT,
-        "corpus": corpus,
+        "models": models,
+        # Per-model corpora keyed by model name.
+        "by_model": all_corpora,
     }, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nwrote {out}")
-    total_calls = sum(len(v) for v in corpus.values())
-    parsed = sum(1 for v in corpus.values() for e in v if e["tool_call"])
-    print(f"{total_calls} prompts, {parsed} parsed tool calls")
+    for model, corp in all_corpora.items():
+        total = sum(len(v) for v in corp.values())
+        parsed = sum(1 for v in corp.values() for e in v if e["tool_call"])
+        print(f"  {model}: {total} prompts, {parsed} parsed")
 
 
 if __name__ == "__main__":
-    samples = int(sys.argv[1]) if len(sys.argv) > 1 else 3
-    main(samples_per_prompt=samples)
+    # Args: [samples_per_prompt] [model1 model2 ...]
+    args = sys.argv[1:]
+    samples = int(args[0]) if args else 3
+    models = args[1:] if len(args) > 1 else [
+        "deepseek-ai/DeepSeek-V3",
+        "Qwen/Qwen2.5-72B-Instruct",
+        "meta-llama/Meta-Llama-3.1-70B-Instruct",
+    ]
+    main(samples_per_prompt=samples, models=models)
