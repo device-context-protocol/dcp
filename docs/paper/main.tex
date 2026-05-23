@@ -600,18 +600,29 @@ median of 1000 timed calls; whiskers show the inter-quartile range. The
 measurements were taken with \texttt{tools/bench\_latency.py} against an
 in-process loopback transport and two physical boards. The loopback row
 isolates the protocol's own encode/decode cost at 0.02\,ms --- negligible
-relative to any real link. The two UART rows --- an ESP32-WROOM-32 behind
-a CH340 USB-UART bridge, and an ESP32-S3 over its native USB-Serial/JTAG
-interface --- both land at $\sim$15.6\,ms and within 0.05\,ms of each
-other. The round-trip is therefore dominated by serial-line transit and
-device-side handling, not by the host bridge or the choice of USB
-bridging chip.
+relative to any real link. The two DCP UART rows --- an ESP32-WROOM-32
+behind a CH340 USB-UART bridge, and an ESP32-S3 over its native
+USB-Serial/JTAG interface --- both land at $\sim$15.6\,ms and within
+0.05\,ms of each other. The round-trip is therefore dominated by
+serial-line transit and host scheduling, not by the host bridge or the
+choice of USB bridging chip.
 
-We do not plot a direct bar against IoT-MCP's reported
-$\sim$\,205\,ms~\cite{iotmcp2025}: that figure is an average response
-time measured under a different methodology and scope, and a fair
-head-to-head requires the controlled campaign described in our
-limitations.
+To put DCP's safety overhead against a like-for-like baseline we also
+flashed an IoT-MCP-style firmware to the same ESP32-S3 board ---
+newline-delimited JSON over UART, matching the wire format used by
+IoT-MCP's reference MCU servers (e.g.\ \texttt{servers/BUZZER/main.py}
+in their repo, which does no schema validation, no range checks, and
+no capability accounting) --- and ran the analogous round-trip through
+the same pyserial-asyncio path used by the DCP bench. Median
+round-trip is 15.59\,ms for IoT-MCP-wire versus 15.60\,ms for DCP, a
+4-microsecond difference well inside the 0.4\,ms standard deviation of
+either run. The same host stack and the same hardware lower-bound both
+protocols at the USB-CDC scheduling floor; DCP's capability scoping,
+range checks, CBOR framing, COBS+CRC, and dry-run path all fit inside
+that floor and add no measurable cost. We do not plot a bar against
+IoT-MCP's reported $\sim$\,205\,ms~\cite{iotmcp2025} because that
+number is end-to-end through their MCP server and an LLM API
+round-trip rather than a wire benchmark.
 
 \begin{figure}[h]
 \centering
@@ -771,9 +782,13 @@ We have \emph{not} established:
   \item Footprint and latency across the multi-MCU matrix that IoT-MCP
         covers (Cortex-M0+, nRF52840, ESP32-C3 etc.). The DCP firmware
         is portable Arduino C++, but only ESP32 is measured here.
-  \item Comparative end-to-end latency vs IoT-MCP's reported
-        $\sim$\,205\,ms (we have qualitative confirmation of similar
-        order-of-magnitude but no formal A/B study).
+  \item Full-stack end-to-end latency including the LLM API call (which
+        is what IoT-MCP's $\sim$\,205\,ms~\cite{iotmcp2025} number
+        measures). Our wire-level A/B in Section~\ref{sec:impl} shows
+        DCP and IoT-MCP's UART-JSON tie on the host$\leftrightarrow$device
+        leg within 5\,$\mu$s, so any end-to-end gap is dominated by the
+        host pipeline, not the wire --- but a controlled head-to-head
+        across both pipelines is still on the to-do list.
   \item LLM-safety results beyond two LLMs and six attack categories.
         Our corpus is 295~tool calls from DeepSeek~V3 and
         Qwen2.5-72B-Instruct (a third candidate, Qwen2.5-7B-Instruct,

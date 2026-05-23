@@ -376,18 +376,26 @@ def fig_latency():
             "(--loopback and --serial <port>) to record measurements.")
     data = json.loads(data_path.read_text(encoding="utf-8"))
 
-    # Baseline first, then the hardware transports.
-    order = ["loopback", "uart_wroom", "uart_s3"]
+    # Baseline first, then the hardware transports. uart_s3_iotmcp is
+    # the apples-to-apples IoT-MCP wire-protocol comparison on the same
+    # ESP32-S3 hardware.
+    order = ["loopback", "uart_wroom", "uart_s3", "uart_s3_iotmcp"]
     rows = [(k, data[k]) for k in order if k in data]
     if not rows:
         raise ValueError("latency_data.json has no recognised transport keys")
 
     short = {
-        "loopback":   "loopback\n(in-process baseline)",
-        "uart_wroom": "UART 115200\nWROOM-32 · CH340",
-        "uart_s3":    "UART 115200\nESP32-S3 · native USB",
+        "loopback":       "DCP loopback\n(in-process baseline)",
+        "uart_wroom":     "DCP / UART 115200\nWROOM-32 · CH340",
+        "uart_s3":        "DCP / UART 115200\nESP32-S3 · native USB",
+        "uart_s3_iotmcp": "IoT-MCP wire / UART\nESP32-S3 · native USB",
     }
-    palette = {"loopback": C["dcp_lt"], "uart_wroom": C["dcp"], "uart_s3": C["dcp"]}
+    palette = {
+        "loopback":       C["dcp_lt"],
+        "uart_wroom":     C["dcp"],
+        "uart_s3":        C["dcp"],
+        "uart_s3_iotmcp": C["iotmcp"],
+    }
 
     fig, ax = plt.subplots(figsize=(6.5, 2.5))
     y = np.arange(len(rows))
@@ -418,10 +426,11 @@ def fig_latency():
 
     fig.subplots_adjust(bottom=0.30, top=0.86, left=0.26, right=0.97)
     fig.text(0.5, 0.03,
-             "Measured by tools/bench_latency.py. The loopback row is the "
-             "protocol's own encode/decode cost with no wire;\nthe two UART "
-             "rows are real hardware. CH340 and native-USB transports land "
-             "within 0.05 ms of each other.",
+             "Measured by tools/bench_latency.py (DCP rows) and "
+             "tools/bench_latency_iotmcp.py (IoT-MCP row). Same host, "
+             "same baud, same asyncio stack;\nthe two ESP32-S3 rows differ "
+             "only in on-the-wire format (CBOR/COBS vs newline-delimited "
+             "JSON) -- they land within 5 microseconds of each other.",
              ha="center", va="bottom", fontsize=7, color="#666", style="italic")
     save(fig, "latency")
 

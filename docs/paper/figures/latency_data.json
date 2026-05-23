@@ -49,5 +49,23 @@
     "label": "DCP UART 115200 (ESP32-WROOM-32, CH340)",
     "intent": "set_brightness",
     "measured_at": "2026-05-22"
+  },
+  "uart_s3_iotmcp": {
+    "n": 1000,
+    "min": 13.418,
+    "max": 18.0959,
+    "mean": 15.6312,
+    "median": 15.594,
+    "p50": 15.594,
+    "p90": 16.0824,
+    "p99": 16.575,
+    "stdev": 0.3892,
+    "q1": 15.3742,
+    "q3": 15.9624,
+    "iqr": 0.5882,
+    "label": "IoT-MCP wire (ESP32-S3, native USB)",
+    "intent": "set_brightness",
+    "measured_at": "2026-05-24",
+    "wire_protocol": "newline-delimited JSON"
   }
 }
