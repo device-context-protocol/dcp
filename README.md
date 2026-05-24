@@ -311,7 +311,18 @@ MIT.
   CH340, ESP32-S3 / T-Panel over native USB), 13/13 round-trips each
 - [x] Cross-compile clean on ESP32 RISC-V family (C3, C6, H2, P4) and ESP8266
 - [x] Public repo at `device-context-protocol/dcp` (v0.3.0 released)
-- [x] PyPI release (`pip install pydcp`)
+- [x] PyPI release (`pip install pydcp`, latest v0.3.1)
+- [x] LLM-driven hallucination-rejection benchmark: 675 tool calls
+  across 5 LLMs / 4 vendors, prompt-injection category instantiated
+  from AgentDojo's attack templates. DCP catches 100% of capability-
+  escalation and 78% of prompt-injection attempts vs 0–1% for MCP/
+  IoT-MCP. See `tools/gen_llm_corpus.py` + `tools/bench_hallucination_empirical.py`.
+- [x] DCP vs IoT-MCP wire-latency A/B on identical ESP32-S3 hardware:
+  15.60 ms vs 15.59 ms median, within 5 µs. See
+  `firmware/esp32/examples/iotmcp_echo/` + `tools/bench_latency_iotmcp.py`.
+- [x] arXiv preprint submitted (v0.3.1, in moderation; arXiv ID
+  pending). Source bundle and rendered PDF on the v0.3.1
+  [release page](https://github.com/device-context-protocol/dcp/releases/tag/v0.3.1).
 - [ ] T-Panel S3 + CAN bus demo (firmware ready, awaiting hardware)
-- [ ] LLM-driven hallucination-rejection benchmark (planned for v0.4 paper)
 - [ ] ESP32-P4 port for native CAN FD
+- [ ] Multi-MCU footprint matrix (nRF52840, Cortex-M0+, RP2040)
