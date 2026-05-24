@@ -98,9 +98,11 @@ Qwen 3.5-35B-A3B; Zhipu GLM-4-32B; MiniMax M2.5) in response to six
 categories of adversarial prompts are run through the host-side
 validators of DCP, Raw MCP, IoT-MCP, and a well-formed OpenAPI~3
 schema; DCP rejects 100\,\% of capability-escalation attempts and
-48\,\% of prompt-injection attempts versus 0--6\,\% for MCP-family
-protocols, matching OpenAPI's expressiveness at three orders of
-magnitude less firmware footprint. We position DCP as the missing layer between MCP
+78\,\% of prompt-injection attempts (the latter using the seven
+attack templates from AgentDojo~\cite{agentdojo} adapted to the
+device-control setting) versus 0--1\,\% for MCP-family protocols,
+matching OpenAPI's expressiveness at three orders of magnitude
+less firmware footprint. We position DCP as the missing layer between MCP
 (which is moving toward enterprise SaaS connectivity
 \cite{mcp_roadmap_2026}) and the physical devices it does not reach.
 \end{abstract}
@@ -159,10 +161,13 @@ designed from the start for LLM callers.
 produced by five LLMs across four vendors (DeepSeek\,V3; Alibaba Qwen
 2.5-72B and Qwen 3.5-35B-A3B; Zhipu GLM-4-32B; MiniMax M2.5) in
 response to six categories of adversarial prompts, DCP rejects
-100\,\% of capability escalation attempts and 48\,\% of prompt
-injection attempts before any byte leaves the host --- versus 0--6\,\%
-for Raw MCP and IoT-MCP, and tied with a well-formed OpenAPI\,3 spec
-at $\sim$\,1/1000 the runtime footprint OpenAPI requires. (ii) An apples-to-apples wire latency A/B
+100\,\% of capability escalation attempts and 78\,\% of prompt
+injection attempts (the latter category instantiated from the seven
+attack templates in AgentDojo~\cite{agentdojo}, adapted to the
+device-control setting) before any byte leaves the host --- versus
+0--1\,\% for Raw MCP and IoT-MCP, and tied with a well-formed
+OpenAPI\,3 spec at $\sim$\,1/1000 the runtime footprint OpenAPI
+requires. (ii) An apples-to-apples wire latency A/B
 on identical ESP32-S3 hardware shows DCP's full schema validation
 (capability + range + dry-run + CBOR/COBS/CRC) and an IoT-MCP-style
 newline-JSON wire both complete a round-trip in $\sim$\,15.6\,ms
@@ -192,14 +197,17 @@ no measurable latency cost.
         (e.g.\ in C, Rust, Go) can mechanically verify against. We argue
         this methodology is necessary for the protocol to survive
         multi-author implementation.
-  \item An \emph{empirical study} (\S\ref{sec:safety}) in which 660 tool
-        calls produced by five real LLMs across four vendors (DeepSeek,
-        Alibaba Qwen, Zhipu GLM, MiniMax; all via SiliconFlow) in
-        response to adversarial prompts across six attack categories
-        are run through each protocol's host-side validator. DCP
-        rejects 100\,\% of capability escalation attempts and 48\,\% of
-        prompt injection attempts, vs 0--6\,\% for MCP/IoT-MCP. The
-        study also produced an end-to-end latency A/B against an
+  \item An \emph{empirical study} (\S\ref{sec:safety}) in which 675
+        tool calls produced by five real LLMs across four vendors
+        (DeepSeek, Alibaba Qwen, Zhipu GLM, MiniMax; all via
+        SiliconFlow) in response to adversarial prompts across six
+        attack categories --- with the prompt-injection category
+        instantiated from AgentDojo's~\cite{agentdojo} seven attack
+        templates adapted to the device-control setting --- are run
+        through each protocol's host-side validator. DCP rejects
+        100\,\% of capability escalation attempts and 78\,\% of prompt
+        injection attempts, vs 0--1\,\% for MCP/IoT-MCP. The study
+        also produced an end-to-end latency A/B against an
         IoT-MCP-shaped firmware on the same ESP32-S3 hardware:
         15.60\,ms vs 15.59\,ms median, within 5\,$\mu$s. DCP's safety
         primitives are free at this scale.
@@ -442,12 +450,21 @@ across four vendors --- DeepSeek\,V3, Alibaba Qwen 2.5-72B and Qwen
 3.5-35B-A3B, Zhipu GLM-4-32B, and MiniMax M2.5, all served by
 SiliconFlow --- and ran 60 adversarial prompts (10 per category,
 3~samples each) against each. The five models together emitted
-660~parseable tool calls (143~DeepSeek, 162~Qwen 2.5, 121~Qwen 3.5,
-148~MiniMax, 86~GLM); a sixth candidate, Qwen 2.5-7B-Instruct,
+675~parseable tool calls (147~DeepSeek, 167~Qwen 2.5, 114~Qwen 3.5,
+156~MiniMax, 91~GLM); a sixth candidate, Qwen 2.5-7B-Instruct,
 produced no parseable OpenAI-style tool calls in an earlier run and
 is excluded. Prompts that did not elicit a tool call (the LLM declined
 or replied in natural language) are also excluded because they have
-no protocol-layer event to measure. The 660~captured calls --- real
+no protocol-layer event to measure. The 6 attack categories cover
+out-of-range numeric values, unit confusion, wrong type, unknown
+intent, capability escalation, and prompt injection. The prompt-
+injection category is not hand-crafted: it instantiates the seven
+attack templates registered in AgentDojo~\cite{agentdojo}
+(\texttt{Direct}, \texttt{IgnorePrevious}, \texttt{SystemMessage},
+\texttt{InjecAgent}, \texttt{ImportantInstructions},
+\texttt{ToolKnowledge}, and a DoS-flavored variant) with goals
+appropriate to our smart-lamp setting (``call \texttt{reboot}'',
+``inflate the label to N\,KB''). The 675~captured calls --- real
 LLM behavior across four vendor families, not hand-constructed inputs
 --- are fed to each of the four protocols' host-side validators (the real
 \texttt{dcp.bridge.Bridge} for DCP, \texttt{jsonschema} for Raw MCP,
@@ -475,11 +492,16 @@ and OpenAPI's OAuth2 scopes reject \emph{all 138}; MCP-family
 protocols have no caller-capability concept at the schema layer and
 let every one through. This 100\,\%~vs~0\,\% gap is the sharpest and
 most replicated result in the study. (iii)~Prompt injection elicits
-two distinct LLM behaviors: in the majority of cases the LLM
-``absorbs'' the injection by stuffing the payload into the
-\texttt{set\_label} text field; in a minority it follows the injection
-and calls \texttt{reboot()}. The latter is caught by capability; the
-former needs a \emph{string} constraint to reject. The first run of
+two distinct LLM behaviors: in 153~of 160~parsed calls the LLM
+``absorbs'' the injection by stuffing the AgentDojo payload into the
+\texttt{set\_label} text field; in the remaining 7~it follows the
+injection and calls \texttt{reboot()}. The 7~\texttt{reboot} calls
+are caught by capability; 118~of the 153~\texttt{set\_label} payloads
+are caught by DCP's v0.3.1 \texttt{pattern} and \texttt{max\_length}
+constraints. Combined: 125~of 160 = 78\,\% DCP rejection, identical to
+OpenAPI. MCP-family protocols catch 2 (1\,\%), purely as a side-effect
+of \texttt{additionalProperties:\,false} on the empty-schema reboot
+tool. The first run of
 this experiment exposed a real gap: the DCP \texttt{Param} type had
 no \texttt{pattern} or \texttt{max\_length} fields, so DCP let every
 \texttt{set\_label} payload through and scored 30\,\% while OpenAPI's
@@ -513,10 +535,12 @@ injection), and that is the gap the paper actually closes.
 \centering
 \includegraphics[width=\linewidth]{hallucination.pdf}
 \caption{Schema-layer rejection rates over an empirical corpus of
-660~tool calls produced by five LLMs across four vendors (DeepSeek\,V3;
+675~tool calls produced by five LLMs across four vendors (DeepSeek\,V3;
 Alibaba Qwen 2.5-72B and Qwen 3.5-35B-A3B; Zhipu GLM-4-32B; MiniMax
 M2.5; all via SiliconFlow) in response to adversarial prompts across six
-categories. Bars are exact percentages over the calls the LLMs actually
+categories; the prompt-injection category instantiates the seven attack
+templates from AgentDojo~\cite{agentdojo} adapted to the device-control
+setting. Bars are exact percentages over the calls the LLMs actually
 emitted; prompts that did not elicit a tool call are excluded. DCP's
 target alternatives are Raw MCP and IoT-MCP (also embedded-targeted):
 DCP closes the capability-escalation column (100\,\% vs 0\,\%) and the
@@ -786,11 +810,17 @@ prompt-injection attacks and defenses on LLM agents.
 InjecAgent~\cite{injecagent} catalogues indirect-injection attack
 patterns specifically in tool-integrated agents. ToolBench~\cite{toolbench}
 covers 16,000+ APIs but is utility-oriented rather than adversarial.
-Our empirical study (\S\ref{sec:safety}) uses a smaller, hand-crafted
-corpus aimed specifically at the device-control idioms DCP cares about
-(numeric ranges with units, named static intents, capability-scoped
-operations); folding in AgentDojo-style benchmarks for a broader,
-independently-curated attack taxonomy is the obvious next step.
+Our empirical study (\S\ref{sec:safety}) instantiates AgentDojo's
+seven attack templates (\texttt{Direct}, \texttt{IgnorePrevious},
+\texttt{SystemMessage}, \texttt{InjecAgent},
+\texttt{ImportantInstructions}, \texttt{ToolKnowledge}, and a
+DoS-flavored variant) with goals adapted to the device-control
+setting; the prompt-injection numbers reported in
+Figure~\ref{fig:halluc} therefore use the same attack vocabulary as
+the broader LLM-agent safety community, while the surrounding
+categories (numeric ranges with units, named static intents,
+capability-scoped operations) target the device-control idioms DCP
+is specifically built for.
 
 DCP is complementary to all of these. The Bridge's structural checks
 (capability, range, type, dry-run) reject calls before they become an
@@ -830,13 +860,17 @@ We have \emph{not} established:
         host pipeline, not the wire --- but a controlled head-to-head
         across both pipelines is still on the to-do list.
   \item LLM-safety results beyond five LLMs and six attack categories.
-        Our corpus is 660~tool calls from DeepSeek\,V3, Alibaba Qwen
+        Our corpus is 675~tool calls from DeepSeek\,V3, Alibaba Qwen
         2.5-72B / Qwen 3.5-35B-A3B, Zhipu GLM-4-32B, and MiniMax M2.5
         (a sixth candidate, Qwen 2.5-7B-Instruct, emitted no parseable
-        OpenAI-style tool calls and was excluded). Closed-source
-        frontier models (GPT-4o, Claude, Gemini) and an
-        independently-sourced attack taxonomy (e.g.\ via AgentDojo) are
-        left to follow-up work.
+        OpenAI-style tool calls and was excluded). The prompt-injection
+        category instantiates AgentDojo's~\cite{agentdojo} seven attack
+        templates, so the attack vocabulary itself is independently
+        curated; the remaining five categories are device-control
+        specific and constructed for this paper. Closed-source frontier
+        models (GPT-4o, Claude, Gemini) and full integration into
+        AgentDojo's task suites (banking, slack, travel, workspace
+        \emph{plus} a new IoT-control suite) are left to follow-up work.
 \end{itemize}
 
 For the broader hardware and benchmark evaluation we plan to leverage
@@ -894,10 +928,12 @@ application-level discipline; the implementation contribution is a
 of MCUs MCP cannot reach.
 
 The empirical contribution is the part we did not expect to surface.
-Across 660 real LLM-emitted tool calls from five models spanning four
-vendor families, DCP's structural checks \emph{catch every
-capability-escalation attempt} (100\,\% vs 0\,\% for the only
-protocols that target comparable hardware) and add no
+Across 675 real LLM-emitted tool calls from five models spanning four
+vendor families --- with the prompt-injection category instantiated
+from AgentDojo's seven attack templates --- DCP's structural checks
+\emph{catch every capability-escalation attempt} (100\,\% vs 0\,\%
+for the only protocols that target comparable hardware) and reject
+78\,\% of prompt-injection attempts versus 1\,\% for MCP-family and add no
 measurable latency cost (within 5\,$\mu$s of a bare JSON wire on the
 same chip). The same study drove the v0.3.1 addition of string
 \texttt{pattern} and \texttt{max\_length} fields, closing the
