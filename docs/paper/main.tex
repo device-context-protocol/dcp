@@ -92,14 +92,15 @@ and post-hoc behavioral intrusion detection~\cite{aegismcp}: DCP prevents
 structurally-invalid calls; those approaches catch what slips through. We
 describe DCP's design rationale, MIT-licensed reference implementations
 (Python Bridge, ESP32 firmware), a language-neutral conformance suite,
-and an empirical evaluation in which 295~tool calls produced by two
-LLMs (DeepSeek~V3, Qwen2.5-72B-Instruct) in response to six categories
-of adversarial prompts are run through the host-side validators of
-DCP, Raw MCP, IoT-MCP, and a well-formed OpenAPI~3 schema; DCP
-rejects 100\,\% of capability-escalation attempts and 50\,\% of
-prompt-injection attempts versus 0--5\,\% for MCP-family protocols,
-matching OpenAPI's expressiveness at three orders of magnitude less
-firmware footprint. We position DCP as the missing layer between MCP
+and an empirical evaluation in which 660~tool calls produced by five
+LLMs across four vendors (DeepSeek\,V3; Alibaba Qwen 2.5-72B and
+Qwen 3.5-35B-A3B; Zhipu GLM-4-32B; MiniMax M2.5) in response to six
+categories of adversarial prompts are run through the host-side
+validators of DCP, Raw MCP, IoT-MCP, and a well-formed OpenAPI~3
+schema; DCP rejects 100\,\% of capability-escalation attempts and
+48\,\% of prompt-injection attempts versus 0--6\,\% for MCP-family
+protocols, matching OpenAPI's expressiveness at three orders of
+magnitude less firmware footprint. We position DCP as the missing layer between MCP
 (which is moving toward enterprise SaaS connectivity
 \cite{mcp_roadmap_2026}) and the physical devices it does not reach.
 \end{abstract}
@@ -154,13 +155,14 @@ a reference implementation across host (Python) and device (C++ for ESP32),
 designed from the start for LLM callers.
 
 \paragraph{Empirical headlines.} Two findings up front, both measured
-(\S\ref{sec:safety}, \S\ref{sec:impl}): (i) across 295 tool calls
-produced by DeepSeek\,V3 and Qwen2.5-72B-Instruct in response to six
-categories of adversarial prompts, DCP rejects 100\,\% of capability
-escalation attempts and 50\,\% of prompt injection attempts before any
-byte leaves the host --- versus 0--5\,\% for Raw MCP and IoT-MCP, and
-tied with a well-formed OpenAPI\,3 spec at $\sim$\,1/1000 the runtime
-footprint OpenAPI requires. (ii) An apples-to-apples wire latency A/B
+(\S\ref{sec:safety}, \S\ref{sec:impl}): (i) across 660 tool calls
+produced by five LLMs across four vendors (DeepSeek\,V3; Alibaba Qwen
+2.5-72B and Qwen 3.5-35B-A3B; Zhipu GLM-4-32B; MiniMax M2.5) in
+response to six categories of adversarial prompts, DCP rejects
+100\,\% of capability escalation attempts and 48\,\% of prompt
+injection attempts before any byte leaves the host --- versus 0--6\,\%
+for Raw MCP and IoT-MCP, and tied with a well-formed OpenAPI\,3 spec
+at $\sim$\,1/1000 the runtime footprint OpenAPI requires. (ii) An apples-to-apples wire latency A/B
 on identical ESP32-S3 hardware shows DCP's full schema validation
 (capability + range + dry-run + CBOR/COBS/CRC) and an IoT-MCP-style
 newline-JSON wire both complete a round-trip in $\sim$\,15.6\,ms
@@ -190,16 +192,17 @@ no measurable latency cost.
         (e.g.\ in C, Rust, Go) can mechanically verify against. We argue
         this methodology is necessary for the protocol to survive
         multi-author implementation.
-  \item An \emph{empirical study} (\S\ref{sec:safety}) in which 295 tool
-        calls produced by two real LLMs (DeepSeek\,V3 and
-        Qwen2.5-72B-Instruct via SiliconFlow) in response to adversarial
-        prompts across six attack categories are run through each
-        protocol's host-side validator. DCP rejects 100\,\% of capability
-        escalation attempts and 50\,\% of prompt injection attempts, vs
-        0--5\,\% for MCP/IoT-MCP. The study also produced an end-to-end
-        latency A/B against an IoT-MCP-shaped firmware on the same
-        ESP32-S3 hardware: 15.60\,ms vs 15.59\,ms median, within 5\,$\mu$s.
-        DCP's safety primitives are free at this scale.
+  \item An \emph{empirical study} (\S\ref{sec:safety}) in which 660 tool
+        calls produced by five real LLMs across four vendors (DeepSeek,
+        Alibaba Qwen, Zhipu GLM, MiniMax; all via SiliconFlow) in
+        response to adversarial prompts across six attack categories
+        are run through each protocol's host-side validator. DCP
+        rejects 100\,\% of capability escalation attempts and 48\,\% of
+        prompt injection attempts, vs 0--6\,\% for MCP/IoT-MCP. The
+        study also produced an end-to-end latency A/B against an
+        IoT-MCP-shaped firmware on the same ESP32-S3 hardware:
+        15.60\,ms vs 15.59\,ms median, within 5\,$\mu$s. DCP's safety
+        primitives are free at this scale.
   \item A discussion (\S\ref{sec:related}) positioning DCP against MCP,
         IoT-MCP, W3C Web of Things~\cite{wot_td_2025},
         Matter~\cite{matter_spec}, Sparkplug~B~\cite{sparkplug}, and direct
@@ -434,17 +437,19 @@ the device author both see in the schema, rather than as application-level
 discipline that every project rewrites. To quantify the resulting safety
 gap empirically we built a smart-lamp test rig with three tools
 (\texttt{set\_brightness}, \texttt{set\_label}, \texttt{reboot}), exposed
-those tools via the OpenAI-style function-calling API to two LLMs ---
-DeepSeek~V3 and Qwen2.5-72B-Instruct, both served by SiliconFlow ---
-and ran 60 adversarial prompts (10 per category, 3~samples each) against
-each. The two models together emitted 295~parseable tool calls
-(137~from DeepSeek~V3, 158~from Qwen2.5-72B); a third candidate,
-Qwen2.5-7B-Instruct, produced no parseable OpenAI-style tool calls and
+those tools via the OpenAI-style function-calling API to five LLMs
+across four vendors --- DeepSeek\,V3, Alibaba Qwen 2.5-72B and Qwen
+3.5-35B-A3B, Zhipu GLM-4-32B, and MiniMax M2.5, all served by
+SiliconFlow --- and ran 60 adversarial prompts (10 per category,
+3~samples each) against each. The five models together emitted
+660~parseable tool calls (143~DeepSeek, 162~Qwen 2.5, 121~Qwen 3.5,
+148~MiniMax, 86~GLM); a sixth candidate, Qwen 2.5-7B-Instruct,
+produced no parseable OpenAI-style tool calls in an earlier run and
 is excluded. Prompts that did not elicit a tool call (the LLM declined
-or replied in natural language) are also excluded because they have no
-protocol-layer event to measure. The 295~captured calls --- real LLM
-behavior across two model families, not hand-constructed inputs --- are
-fed to each of the four protocols' host-side validators (the real
+or replied in natural language) are also excluded because they have
+no protocol-layer event to measure. The 660~captured calls --- real
+LLM behavior across four vendor families, not hand-constructed inputs
+--- are fed to each of the four protocols' host-side validators (the real
 \texttt{dcp.bridge.Bridge} for DCP, \texttt{jsonschema} for Raw MCP,
 IoT-MCP, and a well-formed OpenAPI~3 operation with explicit
 \texttt{minimum}, \texttt{maximum}, \texttt{pattern}, and OAuth2 scopes).
@@ -456,25 +461,25 @@ Figure~\ref{fig:halluc}; the corpus generator is in
 \texttt{tools/bench\_hallucination\_empirical.py}.
 
 The empirical numbers tell a sharper story than a synthetic corpus
-would. Three findings stand out and replicate across both LLMs.
-(i)~The LLM \emph{self-corrects} most obvious numeric mistakes: prompts
-like ``set it to 200'' or ``set it to half'' overwhelmingly produce
-\texttt{level=100} or \texttt{level=50} rather than the literal bad
-value. Out-of-range and unit-confusion attacks therefore look modest at
-the protocol layer (DCP and OpenAPI both at 9\,\% / 7\,\%) because the
-LLM has already absorbed most of the work. (ii)~Capability escalation
-is where the protocol layer genuinely earns its keep: prompts asking to
-``reboot the lamp'' caused both LLMs to call \texttt{reboot()} in
-60~of 60~cases (29 from DeepSeek, 31 from Qwen). DCP's mandatory
-per-intent capability and OpenAPI's OAuth2 scopes both reject all~60;
-MCP-family protocols have no caller-capability concept at the schema
-layer and let every one through. (iii)~Prompt injection elicits two
-distinct LLM behaviors: in 45~of 60~cases the LLM ``absorbs'' the
-injection by stuffing the payload into the \texttt{set\_label} text
-field, and in the remaining 15~cases it follows the injection and
-calls \texttt{reboot()}. The 15~\texttt{reboot} calls are caught by
-capability (DCP and OpenAPI both); the 45~\texttt{set\_label}
-payloads need a \emph{string} constraint to reject. The first run of
+would. Three findings stand out and replicate across all five LLMs
+from four vendors. (i)~The LLM \emph{self-corrects} most obvious
+numeric mistakes: prompts like ``set it to 200'' or ``set it to
+half'' overwhelmingly produce \texttt{level=100} or \texttt{level=50}
+rather than the literal bad value. Out-of-range and unit-confusion
+attacks therefore look modest at the protocol layer (DCP and OpenAPI
+both at 11\,\% / 6\,\%) because the LLM has already absorbed most of
+the work. (ii)~Capability escalation is where the protocol layer
+genuinely earns its keep: across 138~``reboot the lamp'' calls the
+five LLMs collectively emitted, DCP's mandatory per-intent capability
+and OpenAPI's OAuth2 scopes reject \emph{all 138}; MCP-family
+protocols have no caller-capability concept at the schema layer and
+let every one through. This 100\,\%~vs~0\,\% gap is the sharpest and
+most replicated result in the study. (iii)~Prompt injection elicits
+two distinct LLM behaviors: in the majority of cases the LLM
+``absorbs'' the injection by stuffing the payload into the
+\texttt{set\_label} text field; in a minority it follows the injection
+and calls \texttt{reboot()}. The latter is caught by capability; the
+former needs a \emph{string} constraint to reject. The first run of
 this experiment exposed a real gap: the DCP \texttt{Param} type had
 no \texttt{pattern} or \texttt{max\_length} fields, so DCP let every
 \texttt{set\_label} payload through and scored 30\,\% while OpenAPI's
@@ -508,8 +513,9 @@ injection), and that is the gap the paper actually closes.
 \centering
 \includegraphics[width=\linewidth]{hallucination.pdf}
 \caption{Schema-layer rejection rates over an empirical corpus of
-295~tool calls produced by two LLMs (DeepSeek~V3, Qwen2.5-72B-Instruct,
-both via SiliconFlow) in response to adversarial prompts across six
+660~tool calls produced by five LLMs across four vendors (DeepSeek\,V3;
+Alibaba Qwen 2.5-72B and Qwen 3.5-35B-A3B; Zhipu GLM-4-32B; MiniMax
+M2.5; all via SiliconFlow) in response to adversarial prompts across six
 categories. Bars are exact percentages over the calls the LLMs actually
 emitted; prompts that did not elicit a tool call are excluded. DCP's
 target alternatives are Raw MCP and IoT-MCP (also embedded-targeted):
@@ -823,12 +829,14 @@ We have \emph{not} established:
         leg within 5\,$\mu$s, so any end-to-end gap is dominated by the
         host pipeline, not the wire --- but a controlled head-to-head
         across both pipelines is still on the to-do list.
-  \item LLM-safety results beyond two LLMs and six attack categories.
-        Our corpus is 295~tool calls from DeepSeek~V3 and
-        Qwen2.5-72B-Instruct (a third candidate, Qwen2.5-7B-Instruct,
-        emitted no parseable OpenAI-style tool calls and was excluded).
-        Broader coverage across model families and a larger,
-        independently-sourced attack taxonomy is left to follow-up work.
+  \item LLM-safety results beyond five LLMs and six attack categories.
+        Our corpus is 660~tool calls from DeepSeek\,V3, Alibaba Qwen
+        2.5-72B / Qwen 3.5-35B-A3B, Zhipu GLM-4-32B, and MiniMax M2.5
+        (a sixth candidate, Qwen 2.5-7B-Instruct, emitted no parseable
+        OpenAI-style tool calls and was excluded). Closed-source
+        frontier models (GPT-4o, Claude, Gemini) and an
+        independently-sourced attack taxonomy (e.g.\ via AgentDojo) are
+        left to follow-up work.
 \end{itemize}
 
 For the broader hardware and benchmark evaluation we plan to leverage
@@ -886,9 +894,10 @@ application-level discipline; the implementation contribution is a
 of MCUs MCP cannot reach.
 
 The empirical contribution is the part we did not expect to surface.
-Across 295 real LLM-emitted tool calls, DCP's structural checks
-\emph{catch every capability-escalation attempt} (100\,\% vs 0\,\% for
-the only protocols that target comparable hardware) and add no
+Across 660 real LLM-emitted tool calls from five models spanning four
+vendor families, DCP's structural checks \emph{catch every
+capability-escalation attempt} (100\,\% vs 0\,\% for the only
+protocols that target comparable hardware) and add no
 measurable latency cost (within 5\,$\mu$s of a bare JSON wire on the
 same chip). The same study drove the v0.3.1 addition of string
 \texttt{pattern} and \texttt{max\_length} fields, closing the

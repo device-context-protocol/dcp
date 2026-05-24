@@ -251,7 +251,7 @@ def run_one_model(model: str, samples_per_prompt: int) -> dict:
                     "usage": resp.get("usage"),
                 }
                 corpus[category].append(entry)
-                time.sleep(0.2)
+                time.sleep(0.6)
     return corpus
 
 
@@ -259,7 +259,10 @@ def main(samples_per_prompt: int = 3, models: list[str] | None = None) -> None:
     if models is None:
         models = [DEFAULT_MODEL]
     all_corpora = {}
-    for model in models:
+    for i, model in enumerate(models):
+        if i > 0:
+            print(f"\n=== cool-down 20s before next model ===")
+            time.sleep(20)
         print(f"\n=== {model} ===")
         all_corpora[model] = run_one_model(model, samples_per_prompt)
     out = ROOT / "tools" / "llm_corpus.json"
