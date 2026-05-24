@@ -153,6 +153,20 @@ our proposal: a compact wire format, a manifest schema, a safety model, and
 a reference implementation across host (Python) and device (C++ for ESP32),
 designed from the start for LLM callers.
 
+\paragraph{Empirical headlines.} Two findings up front, both measured
+(\S\ref{sec:safety}, \S\ref{sec:impl}): (i) across 295 tool calls
+produced by DeepSeek\,V3 and Qwen2.5-72B-Instruct in response to six
+categories of adversarial prompts, DCP rejects 100\,\% of capability
+escalation attempts and 50\,\% of prompt injection attempts before any
+byte leaves the host --- versus 0--5\,\% for Raw MCP and IoT-MCP, and
+tied with a well-formed OpenAPI\,3 spec at $\sim$\,1/1000 the runtime
+footprint OpenAPI requires. (ii) An apples-to-apples wire latency A/B
+on identical ESP32-S3 hardware shows DCP's full schema validation
+(capability + range + dry-run + CBOR/COBS/CRC) and an IoT-MCP-style
+newline-JSON wire both complete a round-trip in $\sim$\,15.6\,ms
+median, within 5\,$\mu$s of each other. DCP's safety primitives carry
+no measurable latency cost.
+
 \paragraph{Contributions.} This paper makes the following contributions:
 
 \begin{enumerate}[leftmargin=*,nosep]
@@ -176,22 +190,29 @@ designed from the start for LLM callers.
         (e.g.\ in C, Rust, Go) can mechanically verify against. We argue
         this methodology is necessary for the protocol to survive
         multi-author implementation.
+  \item An \emph{empirical study} (\S\ref{sec:safety}) in which 295 tool
+        calls produced by two real LLMs (DeepSeek\,V3 and
+        Qwen2.5-72B-Instruct via SiliconFlow) in response to adversarial
+        prompts across six attack categories are run through each
+        protocol's host-side validator. DCP rejects 100\,\% of capability
+        escalation attempts and 50\,\% of prompt injection attempts, vs
+        0--5\,\% for MCP/IoT-MCP. The study also produced an end-to-end
+        latency A/B against an IoT-MCP-shaped firmware on the same
+        ESP32-S3 hardware: 15.60\,ms vs 15.59\,ms median, within 5\,$\mu$s.
+        DCP's safety primitives are free at this scale.
   \item A discussion (\S\ref{sec:related}) positioning DCP against MCP,
         IoT-MCP, W3C Web of Things~\cite{wot_td_2025},
         Matter~\cite{matter_spec}, Sparkplug~B~\cite{sparkplug}, and direct
-        OpenAPI exposure. We argue DCP occupies a specific gap: \emph{LLM-native
-        safety primitives at MCU scale}, which none of the alternatives
-        addresses.
+        OpenAPI exposure. We argue DCP occupies a specific gap:
+        \emph{LLM-native safety primitives at MCU scale}, which none of
+        the alternatives addresses.
 \end{enumerate}
 
-We make no claim of empirical superiority on benchmarks beyond what
-IoT-MCP has already reported, because we have not yet completed the
-hardware measurement campaign that would justify such a claim. We position
-this paper as a \emph{design contribution and architectural argument},
-with a complete open-source implementation~\cite{wot_td_2025}\footnote{
-The DCP reference implementation is MIT-licensed and will be released at
-\texttt{github.com/device-context-protocol} upon paper acceptance.}
-available for inspection and reproduction.
+The reference implementation is MIT-licensed and publicly available at
+\url{https://github.com/device-context-protocol/dcp}; the Python Bridge
+ships on PyPI as \texttt{pydcp}; the corpus, validators, and bench
+harnesses behind every figure in this paper are in the same repo and
+re-runnable end-to-end.
 
 \section{Background: The LLM--Hardware Gap}
 
@@ -752,12 +773,25 @@ AegisMCP~\cite{aegismcp} models MCP tool-call traces as streaming
 temporal graphs and detects intrusions sub-second on edge hardware. Both
 operate on already-issued, syntactically valid calls.
 
-DCP is complementary to both. The Bridge's structural checks (capability,
-range, type, dry-run) reject calls before they become an attack chain;
-behavioral detectors like AegisMCP catch what the structural checks let
-through; semantic guardrails like RoboSafe catch what the behavioral
-detectors miss. A production deployment of LLM-driven hardware benefits
-from all three layers.
+A third strand --- the evaluation literature --- builds benchmarks for
+LLM tool-use safety in the abstract.
+AgentDojo~\cite{agentdojo} provides a dynamic environment to evaluate
+prompt-injection attacks and defenses on LLM agents.
+InjecAgent~\cite{injecagent} catalogues indirect-injection attack
+patterns specifically in tool-integrated agents. ToolBench~\cite{toolbench}
+covers 16,000+ APIs but is utility-oriented rather than adversarial.
+Our empirical study (\S\ref{sec:safety}) uses a smaller, hand-crafted
+corpus aimed specifically at the device-control idioms DCP cares about
+(numeric ranges with units, named static intents, capability-scoped
+operations); folding in AgentDojo-style benchmarks for a broader,
+independently-curated attack taxonomy is the obvious next step.
+
+DCP is complementary to all of these. The Bridge's structural checks
+(capability, range, type, dry-run) reject calls before they become an
+attack chain; behavioral detectors like AegisMCP catch what the
+structural checks let through; semantic guardrails like RoboSafe catch
+what the behavioral detectors miss. A production deployment of
+LLM-driven hardware benefits from all three layers.
 
 \subsection{Parallel: CBOR-Web}
 
@@ -816,7 +850,7 @@ DCP today supports neither mesh routing nor multi-device atomic
 transactions. The former is correctly the responsibility of underlying
 layers (Thread, Zigbee); the latter is a real gap for use cases like
 ``turn off every light in the house and lock the front door as a single
-operation.'' Both are deferred to v0.3 and beyond.
+operation.'' Both are deferred to v0.4 and beyond.
 
 Capability tokens are coarse: a token bears a set of capabilities but does
 not bind to specific intents, parameters, or rates. Fine-grained rate
@@ -841,17 +875,34 @@ We close with three questions on which we welcome community input:
 
 \section{Conclusion}
 
-DCP fills a specific gap in the LLM--device stack: a compact, safety-first
-wire format and architecture that scales down to commodity microcontrollers
-while preserving the LLM-aware primitives that make agent-driven control
-tractable in the presence of hallucination. We have presented the design
-rationale, a complete open-source reference implementation, and a
-conformance methodology. The MCP roadmap's deliberate move toward
-enterprise SaaS connectivity creates the design space DCP occupies; we
-expect that the demand for safe LLM control of physical hardware will only
-grow as agent frameworks mature. We invite collaborators, particularly
-those with measurement infrastructure for embedded benchmarks, to
-contribute to the v1.0 release.
+DCP fills a specific gap in the LLM--device stack: a compact,
+safety-first wire format and architecture that scales down to commodity
+microcontrollers while preserving the LLM-aware primitives that make
+agent-driven control tractable in the presence of hallucination. The
+design contribution is intent-level commands plus units, ranges,
+capabilities, and dry-run as protocol primitives rather than
+application-level discipline; the implementation contribution is a
+27.6\,KB-flash, 0.6\,KB-RAM device-side runtime that fits the long tail
+of MCUs MCP cannot reach.
+
+The empirical contribution is the part we did not expect to surface.
+Across 295 real LLM-emitted tool calls, DCP's structural checks
+\emph{catch every capability-escalation attempt} (100\,\% vs 0\,\% for
+the only protocols that target comparable hardware) and add no
+measurable latency cost (within 5\,$\mu$s of a bare JSON wire on the
+same chip). The same study drove the v0.3.1 addition of string
+\texttt{pattern} and \texttt{max\_length} fields, closing the
+prompt-injection gap against OpenAPI. The lesson generalizes: an
+empirical adversarial-prompt study against real LLMs is the cheapest
+way we have found to discover what a protocol's safety spec actually
+needs.
+
+The MCP roadmap's deliberate move toward enterprise SaaS connectivity
+creates the design space DCP occupies; the demand for safe LLM control
+of physical hardware will only grow as agent frameworks mature. We
+invite collaborators --- particularly those with multi-MCU measurement
+infrastructure and broader LLM API access --- to contribute to the v1.0
+release.
 
 \bibliographystyle{plain}
 \bibliography{refs}
