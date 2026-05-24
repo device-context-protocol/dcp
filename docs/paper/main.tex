@@ -148,10 +148,12 @@ a reference implementation across host (Python) and device (C++ for ESP32),
 designed from the start for LLM callers.
 
 \paragraph{Empirical headlines.} Two findings up front, both measured
-(\S\ref{sec:safety}, \S\ref{sec:impl}): (i) across 660 tool calls
+(\S\ref{sec:safety}, \S\ref{sec:impl}): (i) across 675 tool calls
 produced by five LLMs across four vendors (DeepSeek\,V3; Alibaba Qwen
 2.5-72B and Qwen 3.5-35B-A3B; Zhipu GLM-4-32B; MiniMax M2.5) in
-response to six categories of adversarial prompts, DCP rejects
+response to six categories of adversarial prompts --- with the
+prompt-injection category instantiated from AgentDojo's~\cite{agentdojo}
+attack templates --- DCP rejects
 100\,\% of capability escalation attempts and 78\,\% of prompt
 injection attempts (the latter category instantiated from the seven
 attack templates in AgentDojo~\cite{agentdojo}, adapted to the
@@ -519,7 +521,7 @@ point: DCP delivers the same schema-layer rejection expressiveness as
 a well-written OpenAPI service, in a runtime three orders of magnitude
 smaller, on hardware OpenAPI cannot reach. The protocols that
 \emph{can} reach this hardware --- Raw MCP and IoT-MCP --- sit at
-0--6\,\% across the columns that matter (capability, prompt
+0--1\,\% across the columns that matter (capability, prompt
 injection), and that is the gap the paper actually closes.
 
 \begin{figure}[h]
@@ -836,7 +838,8 @@ compact encodings and explicit cryptographic semantics.
 We have validated the reference implementation on one MCU (ESP32-WROOM-32)
 over one transport (UART), reported its compiled footprint, measured
 its end-to-end latency, and run an empirical adversarial-prompt study
-against two LLMs (Section~\ref{sec:safety}, Figure~\ref{fig:halluc}).
+against five LLMs across four vendors using AgentDojo's attack templates
+(Section~\ref{sec:safety}, Figure~\ref{fig:halluc}).
 We have \emph{not} established:
 
 \begin{itemize}[leftmargin=*,nosep]
