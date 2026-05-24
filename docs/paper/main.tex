@@ -67,44 +67,35 @@
 
 \begin{abstract}
 \noindent
-Large language models are increasingly used as orchestrators of external tools,
-and the Model Context Protocol (MCP) has emerged as a de facto standard for
-exposing such tools. MCP, however, is designed for software services running
-on hosts with megabytes of memory; it does not fit on the inexpensive
-microcontrollers that dominate the long tail of physical devices. Recent work
-(IoT-MCP) demonstrates that an MCP server can be ported to edge gateways at a
-74\,KB peak memory cost~\cite{iotmcp2025}. This still excludes the smallest,
-cheapest microcontrollers, and---critically---does not address the safety
-problem that arises when an unreliable caller (an LLM that may hallucinate or
-be prompt-injected) is given direct control of physical hardware. We present
-the \textbf{Device Context Protocol (DCP)}, a wire format and architecture
-purpose-built for LLM-driven control of constrained devices. DCP composes a
-6-byte header, a CBOR-encoded payload, and an optional 16-byte HMAC into a
-sub-50-byte typical frame; the reference firmware's DCP layer measures
-27.6\,KB of flash and 0.6\,KB of RAM on an ESP32. A \emph{Bridge} process
-between the LLM and
-the device enforces capability scoping, range and type checks, dry-run
-evaluation, and units-as-types---\textbf{protocol-layer} safety primitives
-that prevent malformed or hallucinated calls before any byte traverses the
-device boundary. This positioning is deliberately complementary to recent
-work on runtime guardrails for LLM-driven physical systems~\cite{web_of_drones,robosafe}
-and post-hoc behavioral intrusion detection~\cite{aegismcp}: DCP prevents
-structurally-invalid calls; those approaches catch what slips through. We
-describe DCP's design rationale, MIT-licensed reference implementations
-(Python Bridge, ESP32 firmware), a language-neutral conformance suite,
-and an empirical evaluation in which 660~tool calls produced by five
-LLMs across four vendors (DeepSeek\,V3; Alibaba Qwen 2.5-72B and
-Qwen 3.5-35B-A3B; Zhipu GLM-4-32B; MiniMax M2.5) in response to six
-categories of adversarial prompts are run through the host-side
-validators of DCP, Raw MCP, IoT-MCP, and a well-formed OpenAPI~3
-schema; DCP rejects 100\,\% of capability-escalation attempts and
-78\,\% of prompt-injection attempts (the latter using the seven
-attack templates from AgentDojo~\cite{agentdojo} adapted to the
-device-control setting) versus 0--1\,\% for MCP-family protocols,
-matching OpenAPI's expressiveness at three orders of magnitude
-less firmware footprint. We position DCP as the missing layer between MCP
-(which is moving toward enterprise SaaS connectivity
-\cite{mcp_roadmap_2026}) and the physical devices it does not reach.
+Large language models are increasingly used as orchestrators of external
+tools via the Model Context Protocol (MCP)~\cite{mcp2024}, but MCP is
+built for software services with megabytes of memory and does not
+descend to the microcontrollers that dominate the long tail of physical
+devices. Recent work (IoT-MCP)~\cite{iotmcp2025} ports MCP to edge
+gateways at 74\,KB peak memory; this still excludes the smallest
+commodity MCUs and, critically, does not address the safety problem
+of giving an unreliable caller (an LLM that may hallucinate or be
+prompt-injected) direct control of physical hardware. We present the
+\textbf{Device Context Protocol (DCP)}: a sub-50-byte typical frame
+(6-byte header + CBOR payload + optional 16-byte HMAC), a manifest
+schema in which capability scoping, range and type checks, dry-run
+evaluation, and units-as-types are protocol-layer primitives, and a
+host-side \emph{Bridge} that rejects malformed or hallucinated calls
+before any byte reaches the device. Reference firmware measures
+\textbf{27.6\,KB flash / 0.6\,KB RAM} on ESP32; the Python Bridge,
+ESP32 firmware, and a language-neutral conformance suite are
+MIT-licensed and public. An empirical study --- 675 tool calls
+produced by five LLMs across four vendors (DeepSeek, Alibaba, Zhipu,
+MiniMax) against six categories of adversarial prompts, with the
+injection category instantiating AgentDojo's~\cite{agentdojo}
+attack templates --- shows DCP rejects \textbf{100\,\% of
+capability-escalation attempts} and \textbf{78\,\% of prompt-injection
+attempts}, versus 0--1\,\% for Raw MCP and IoT-MCP, matching the
+expressiveness of a well-formed OpenAPI\,3 schema at three orders of
+magnitude less firmware footprint. We position DCP as the missing
+layer between MCP (which is moving toward enterprise SaaS
+connectivity~\cite{mcp_roadmap_2026}) and the physical devices it does
+not reach.
 \end{abstract}
 
 \section{Introduction}
