@@ -1,0 +1,53 @@
+# Grid Demo manifest — visual safety-gating demo.
+#
+# A 6x6 grid with a movable square. The LLM gets ONE actuation tool:
+# move(direction, steps). DCP gates calls that would leave the grid
+# (returns STATUS_RANGE). Audience watches: square moves on legal calls,
+# stays put + grid flashes red on rejected calls.
+#
+# Pairs with firmware/esp32/examples/grid_demo/grid_demo.ino.
+
+dcp: 0.3
+device:
+  id:     grid-demo-01
+  model:  lilygo_t_panel_s3_grid
+  vendor: deeplethe.com
+
+intents:
+  - name: move
+    # Move the square N cells in one of four directions. Returns range
+    # error if the resulting position would be outside the grid.
+    params:
+      direction: { type: string }                       # "up"|"down"|"left"|"right"
+      steps:     { type: int, range: [1, 7] }           # within reach
+    capability: grid.write
+    idempotent: false
+    dry_run:    true
+
+  - name: grid_reset
+    # Teleport the square to a known cell (no animation).
+    params:
+      x: { type: int, range: [0, 5] }
+      y: { type: int, range: [0, 5] }
+    capability: grid.write
+    idempotent: true
+
+  - name: set_status
+    # Update the dark slate banner at the top of the panel.
+    params:
+      text: { type: string }
+    capability: panel.write
+    idempotent: true
+
+  - name: narrate
+    # Write one of the three narration rows above the grid.
+    params:
+      line: { type: int, range: [0, 2] }
+      text: { type: string }
+      role: { type: string, default: "plain" }          # plain|user|llm|dcp_ok|dcp_err|dcp_req
+    capability: panel.write
+    idempotent: true
+
+  - name: clear_narration
+    capability: panel.write
+    idempotent: true
