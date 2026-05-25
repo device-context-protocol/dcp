@@ -104,9 +104,24 @@ static lv_disp_draw_buf_t draw_buf;
 static lv_disp_drv_t  disp_drv;
 static lv_indev_drv_t indev_drv;
 
-static lv_obj_t *g_header_label;
-static lv_obj_t *g_text_labels[4];
-static lv_obj_t *g_color_swatch;
+static lv_obj_t *g_header_label;    // tiny device-id label, top-left
+static lv_obj_t *g_status_label;    // dynamic "what are we doing now" bar
+static lv_obj_t *g_text_labels[8];  // 8 message rows (0-3 narration, 4-7 LLM content)
+static lv_obj_t *g_separator;       // horizontal line between narration and LLM area
+static lv_obj_t *g_color_chip;      // small color indicator (set_color visualizer)
+static lv_obj_t *g_footer_label;    // subtle bottom info bar
+
+// Role → text color mapping for display_text. Lets the orchestrator
+// color-code USER vs LLM vs DCP messages so the conversation flow is
+// legible on the panel.
+static lv_color_t role_to_color(const char* role, size_t len) {
+    if      (len == 4 && memcmp(role, "user",    4) == 0) return lv_color_make(20, 150, 200);   // cyan
+    else if (len == 3 && memcmp(role, "llm",     3) == 0) return lv_color_make(220, 160, 20);   // amber
+    else if (len == 6 && memcmp(role, "dcp_ok",  6) == 0) return lv_color_make(30, 170, 60);    // green
+    else if (len == 7 && memcmp(role, "dcp_err", 7) == 0) return lv_color_make(210, 40, 40);    // red
+    else if (len == 7 && memcmp(role, "dcp_req", 7) == 0) return lv_color_make(110, 110, 130);  // gray
+    return lv_color_black();
+}
 
 // Diagnostic: count flushes so we can detect runaway redraws.
 static volatile uint32_t g_flush_count = 0;
@@ -179,15 +194,19 @@ static dcp::Status h_set_color(uint8_t kind, dcp::CborReader& params,
         return dcp::STATUS_OK;
     }
     g_r = (uint8_t)r; g_g = (uint8_t)g; g_b = (uint8_t)b;
-    if (g_color_swatch) {
-        lv_obj_set_style_bg_color(g_color_swatch, lv_color_make(g_r, g_g, g_b), LV_PART_MAIN);
+    // Tiny color chip on the status bar — a visual ack that set_color
+    // landed without dominating screen real estate.
+    if (g_color_chip) {
+        lv_obj_set_style_bg_color(g_color_chip, lv_color_make(g_r, g_g, g_b), LV_PART_MAIN);
     }
     return dcp::STATUS_OK;
 }
 
 static dcp::Status h_display_text(uint8_t, dcp::CborReader& params,
                                   dcp::CborMap&, void*) {
-    char buf[32] = {0};
+    char buf[40] = {0};
+    char role[12] = "plain";
+    size_t role_len = 5;
     int64_t line = 0, size = 2;
     while (params.remaining() > 0) {
         const char* k; size_t kl;
@@ -195,24 +214,54 @@ static dcp::Status h_display_text(uint8_t, dcp::CborReader& params,
         if (kl == 4 && memcmp(k, "text", 4) == 0) {
             const char* s; size_t slen;
             if (!params.read_string(&s, &slen)) return dcp::STATUS_RANGE;
-            memcpy(buf, s, slen < 31 ? slen : 31);
+            memcpy(buf, s, slen < 39 ? slen : 39);
         } else if (kl == 4 && memcmp(k, "line", 4) == 0) {
             if (!params.read_int(&line)) return dcp::STATUS_RANGE;
         } else if (kl == 4 && memcmp(k, "size", 4) == 0) {
             if (!params.read_int(&size)) return dcp::STATUS_RANGE;
+        } else if (kl == 4 && memcmp(k, "role", 4) == 0) {
+            const char* s; size_t slen;
+            if (!params.read_string(&s, &slen)) return dcp::STATUS_RANGE;
+            role_len = slen < sizeof(role) - 1 ? slen : sizeof(role) - 1;
+            memcpy(role, s, role_len);
+            role[role_len] = '\0';
         } else { params.skip(); }
     }
-    if (line < 0 || line >= 4) return dcp::STATUS_RANGE;
-    if (g_text_labels[line]) lv_label_set_text(g_text_labels[line], buf);
+    if (line < 0 || line >= 8) return dcp::STATUS_RANGE;
+    if (g_text_labels[line]) {
+        lv_label_set_text(g_text_labels[line], buf);
+        lv_obj_set_style_text_color(g_text_labels[line],
+                                    role_to_color(role, role_len),
+                                    LV_PART_MAIN);
+    }
+    return dcp::STATUS_OK;
+}
+
+static dcp::Status h_set_status(uint8_t, dcp::CborReader& params,
+                                dcp::CborMap&, void*) {
+    char buf[40] = {0};
+    while (params.remaining() > 0) {
+        const char* k; size_t kl;
+        if (!params.next_key(&k, &kl)) return dcp::STATUS_DENIED;
+        if (kl == 4 && memcmp(k, "text", 4) == 0) {
+            const char* s; size_t slen;
+            if (!params.read_string(&s, &slen)) return dcp::STATUS_RANGE;
+            memcpy(buf, s, slen < 39 ? slen : 39);
+        } else { params.skip(); }
+    }
+    if (g_status_label) lv_label_set_text(g_status_label, buf);
     return dcp::STATUS_OK;
 }
 
 static dcp::Status h_clear_screen(uint8_t, dcp::CborReader&, dcp::CborMap&, void*) {
-    for (int i = 0; i < 4; i++) {
-        if (g_text_labels[i]) lv_label_set_text(g_text_labels[i], "");
+    for (int i = 0; i < 8; i++) {
+        if (g_text_labels[i]) {
+            lv_label_set_text(g_text_labels[i], "");
+            lv_obj_set_style_text_color(g_text_labels[i], lv_color_black(), LV_PART_MAIN);
+        }
     }
-    if (g_color_swatch) {
-        lv_obj_set_style_bg_color(g_color_swatch, lv_color_black(), LV_PART_MAIN);
+    if (g_color_chip) {
+        lv_obj_set_style_bg_color(g_color_chip, lv_color_make(40, 40, 50), LV_PART_MAIN);
     }
     g_r = g_g = g_b = 0;
     return dcp::STATUS_OK;
@@ -378,6 +427,7 @@ static dcp::IntentBinding bindings[] = {
     { DCP_ID("set_backlight"),       h_set_backlight,       nullptr },
     { DCP_ID("set_color"),           h_set_color,           nullptr },
     { DCP_ID("display_text"),        h_display_text,        nullptr },
+    { DCP_ID("set_status"),          h_set_status,          nullptr },
     { DCP_ID("clear_screen"),        h_clear_screen,        nullptr },
     { DCP_ID("play_tone"),           h_play_tone,           nullptr },
     { DCP_ID("play_score"),          h_play_score,          nullptr },
@@ -431,29 +481,70 @@ static void build_ui() {
     lv_obj_clear_flag(scr, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_scrollbar_mode(scr, LV_SCROLLBAR_MODE_OFF);
 
+    // y= 6: tiny device-id strip (always-on)
     g_header_label = lv_label_create(scr);
     lv_label_set_text(g_header_label, "DCP smart-panel-01");
-    lv_obj_set_style_text_color(g_header_label, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(g_header_label, lv_color_make(110, 110, 130), LV_PART_MAIN);
     lv_obj_set_style_text_font(g_header_label, &lv_font_montserrat_14, LV_PART_MAIN);
-    lv_obj_align(g_header_label, LV_ALIGN_TOP_LEFT, 10, 10);
+    lv_obj_align(g_header_label, LV_ALIGN_TOP_LEFT, 10, 6);
 
+    // y=28: STATUS BAR — dynamic "what scene we're on", dark slate banner.
+    g_status_label = lv_label_create(scr);
+    lv_label_set_text(g_status_label, "ready");
+    lv_obj_set_width(g_status_label, LCD_WIDTH - 20);
+    lv_obj_align(g_status_label, LV_ALIGN_TOP_LEFT, 10, 28);
+    lv_obj_set_style_bg_color(g_status_label, lv_color_make(40, 50, 70), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(g_status_label, LV_OPA_COVER, LV_PART_MAIN);
+    lv_obj_set_style_text_color(g_status_label, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_text_font(g_status_label, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_set_style_pad_all(g_status_label, 8, LV_PART_MAIN);
+    lv_obj_clear_flag(g_status_label, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(g_status_label, LV_SCROLLBAR_MODE_OFF);
+
+    // Tiny color chip on the right of the status bar — visualizes set_color.
+    g_color_chip = lv_obj_create(scr);
+    lv_obj_set_size(g_color_chip, 28, 28);
+    lv_obj_align(g_color_chip, LV_ALIGN_TOP_RIGHT, -16, 32);
+    lv_obj_set_style_bg_color(g_color_chip, lv_color_make(40, 40, 50), LV_PART_MAIN);
+    lv_obj_set_style_border_color(g_color_chip, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_border_width(g_color_chip, 1, LV_PART_MAIN);
+    lv_obj_clear_flag(g_color_chip, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_scrollbar_mode(g_color_chip, LV_SCROLLBAR_MODE_OFF);
+
+    // y= 80..248: lines 0-3 = orchestrator narration zone
+    //   line 0 USER (cyan), line 1 LLM (amber), line 2 DCP-status (green/red),
+    //   line 3 DCP-detail (small data)
     for (int i = 0; i < 4; i++) {
         g_text_labels[i] = lv_label_create(scr);
         lv_label_set_text(g_text_labels[i], "");
         lv_obj_set_style_text_color(g_text_labels[i], lv_color_black(), LV_PART_MAIN);
         lv_obj_set_style_text_font(g_text_labels[i], &lv_font_montserrat_14, LV_PART_MAIN);
-        lv_obj_align(g_text_labels[i], LV_ALIGN_TOP_LEFT, 10, 50 + i * 50);
+        lv_obj_align(g_text_labels[i], LV_ALIGN_TOP_LEFT, 10, 80 + i * 36);
     }
 
-    g_color_swatch = lv_obj_create(scr);
-    lv_obj_set_size(g_color_swatch, 440, 110);
-    lv_obj_align(g_color_swatch, LV_ALIGN_BOTTOM_MID, 0, -10);
-    lv_obj_set_style_bg_color(g_color_swatch, lv_color_black(), LV_PART_MAIN);
-    lv_obj_set_style_border_width(g_color_swatch, 1, LV_PART_MAIN);
-    // Kill the scrollbar fade animation — it forces continuous redraws on
-    // this region every frame, which is exactly the "middle flickering" symptom.
-    lv_obj_clear_flag(g_color_swatch, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_scrollbar_mode(g_color_swatch, LV_SCROLLBAR_MODE_OFF);
+    // y=240: separator line between narration (above) and LLM content (below)
+    g_separator = lv_obj_create(scr);
+    lv_obj_set_size(g_separator, LCD_WIDTH - 40, 2);
+    lv_obj_align(g_separator, LV_ALIGN_TOP_MID, 0, 240);
+    lv_obj_set_style_bg_color(g_separator, lv_color_make(190, 195, 210), LV_PART_MAIN);
+    lv_obj_set_style_border_width(g_separator, 0, LV_PART_MAIN);
+    lv_obj_clear_flag(g_separator, LV_OBJ_FLAG_SCROLLABLE);
+
+    // y=256..400: lines 4-7 = LLM's free content area
+    for (int i = 4; i < 8; i++) {
+        g_text_labels[i] = lv_label_create(scr);
+        lv_label_set_text(g_text_labels[i], "");
+        lv_obj_set_style_text_color(g_text_labels[i], lv_color_black(), LV_PART_MAIN);
+        lv_obj_set_style_text_font(g_text_labels[i], &lv_font_montserrat_14, LV_PART_MAIN);
+        lv_obj_align(g_text_labels[i], LV_ALIGN_TOP_LEFT, 10, 256 + (i - 4) * 36);
+    }
+
+    // y=440: subtle footer "model: DeepSeek-V3  |  manifest v0.3.1  |  12 intents"
+    g_footer_label = lv_label_create(scr);
+    lv_label_set_text(g_footer_label, "DCP v0.3.1  |  12 intents  |  CBOR/UART");
+    lv_obj_set_style_text_color(g_footer_label, lv_color_make(150, 150, 165), LV_PART_MAIN);
+    lv_obj_set_style_text_font(g_footer_label, &lv_font_montserrat_14, LV_PART_MAIN);
+    lv_obj_align(g_footer_label, LV_ALIGN_BOTTOM_LEFT, 10, -8);
 }
 
 static void lvgl_init_displays() {

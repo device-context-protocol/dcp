@@ -38,9 +38,19 @@ intents:
 
   - name: display_text
     params:
-      text:  { type: string }                       # ≤22 chars (CBOR subset)
+      text:  { type: string }                       # ≤39 chars
       line:  { type: int, range: [0, 9], default: 0 }
       size:  { type: int, range: [1, 4], default: 2 }
+      role:  { type: string, default: "plain" }     # plain|user|llm|dcp_ok|dcp_err|dcp_req
+    capability: panel.write
+    idempotent: true
+
+  - name: set_status
+    # Updates the top status bar (the "what are we doing now" banner).
+    # Distinct from display_text so the bar can persist across scene
+    # body updates.
+    params:
+      text:  { type: string }                       # ≤39 chars
     capability: panel.write
     idempotent: true
 
