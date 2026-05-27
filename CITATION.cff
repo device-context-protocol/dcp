@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: "If you use this software or the DCP specification in academic work, please cite the arXiv preprint below."
+title: "Device Context Protocol (DCP): a compact, safety-first protocol for LLM-driven control of constrained devices"
+authors:
+  - family-names: Yang
+    given-names: Dongxu
+    affiliation: DeepLethe
+    email: wayland0916@gmail.com
+type: software
+license: MIT
+repository-code: "https://github.com/device-context-protocol/dcp"
+url: "https://github.com/device-context-protocol/dcp"
+version: "0.3.1"
+date-released: "2026-05-18"
+keywords:
+  - LLM
+  - IoT
+  - protocol
+  - MCP
+  - embedded systems
+  - microcontroller
+  - agent safety
+preferred-citation:
+  type: article
+  title: "Device Context Protocol: A Compact, Safety-First Architecture for LLM-Driven Control of Constrained Devices"
+  authors:
+    - family-names: Yang
+      given-names: Dongxu
+      affiliation: DeepLethe
+  year: 2026
+  month: 5
+  journal: "arXiv preprint"
+  identifiers:
+    - type: other
+      value: "arXiv:2605.26159"
+      description: "arXiv identifier"
+  url: "https://arxiv.org/abs/2605.26159"

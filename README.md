@@ -3,6 +3,7 @@
 [![tests](https://github.com/device-context-protocol/dcp/actions/workflows/test.yml/badge.svg)](https://github.com/device-context-protocol/dcp/actions/workflows/test.yml)
 [![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![spec: v0.3 draft](https://img.shields.io/badge/spec-v0.3%20draft-orange)](SPEC.md)
+[![arXiv](https://img.shields.io/badge/arXiv-2605.26159-b31b1b.svg)](https://arxiv.org/abs/2605.26159)
 
 **Status:** Draft v0.3 — May 2026 · Hardware-validated on ESP32-WROOM-32
 
@@ -281,6 +282,26 @@ For production use, replace ``GenericSimulator`` with a real transport
 - Native CAN FD frames (ESP32-S3 TWAI is classic CAN; v0.4 ESP32-P4
   port enables true CAN FD)
 
+## Cite
+
+If you use DCP in academic work, please cite the arXiv preprint:
+
+```bibtex
+@misc{yang2026dcp,
+  title        = {Device Context Protocol: A Compact, Safety-First Architecture
+                  for LLM-Driven Control of Constrained Devices},
+  author       = {Yang, Dongxu},
+  year         = {2026},
+  eprint       = {2605.26159},
+  archivePrefix= {arXiv},
+  primaryClass = {cs.NI},
+  url          = {https://arxiv.org/abs/2605.26159},
+}
+```
+
+A machine-readable [`CITATION.cff`](CITATION.cff) is also provided — GitHub
+renders a "Cite this repository" button in the sidebar.
+
 ## License
 
 MIT.
@@ -320,8 +341,8 @@ MIT.
 - [x] DCP vs IoT-MCP wire-latency A/B on identical ESP32-S3 hardware:
   15.60 ms vs 15.59 ms median, within 5 µs. See
   `firmware/esp32/examples/iotmcp_echo/` + `tools/bench_latency_iotmcp.py`.
-- [x] arXiv preprint submitted (v0.3.1, in moderation; arXiv ID
-  pending). Source bundle and rendered PDF on the v0.3.1
+- [x] arXiv preprint published: [arXiv:2605.26159](https://arxiv.org/abs/2605.26159)
+  (v0.3.1). Source bundle and rendered PDF also mirrored on the v0.3.1
   [release page](https://github.com/device-context-protocol/dcp/releases/tag/v0.3.1).
 - [ ] T-Panel S3 + CAN bus demo (firmware ready, awaiting hardware)
 - [ ] ESP32-P4 port for native CAN FD
