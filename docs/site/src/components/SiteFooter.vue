@@ -7,6 +7,7 @@ const cols = [
       { label: 'Architecture',  href: '#architecture' },
       { label: 'Comparison',    href: '#compare' },
       { label: 'Rationale',     href: 'https://github.com/device-context-protocol/dcp/blob/main/docs/RATIONALE.md' },
+      { label: 'Paper (arXiv:2605.26159)', href: 'https://arxiv.org/abs/2605.26159' },
     ],
   },
   {
@@ -63,7 +64,7 @@ const cols = [
 
       <div class="pt-7 border-t border-slate-800 flex flex-wrap justify-between items-center gap-4 text-slate-500 text-[13px]">
         <span>© 2026 DCP authors · MIT licensed · Not affiliated with Anthropic, Inc.</span>
-        <span class="font-mono text-[11px]">v0.2 · spec draft</span>
+        <span class="font-mono text-[11px]">v0.3.1 · spec draft</span>
       </div>
     </div>
   </footer>

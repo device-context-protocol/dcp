@@ -39,6 +39,17 @@
         <a href="https://github.com/device-context-protocol" class="btn btn-secondary">
           View on GitHub
         </a>
+        <a
+          href="https://arxiv.org/abs/2605.26159"
+          class="btn btn-secondary"
+          target="_blank"
+          rel="noopener"
+        >
+          Read the paper
+          <span class="ml-1 px-1.5 py-0.5 rounded text-[10.5px] font-mono font-semibold bg-[#b31b1b] text-white align-middle">
+            arXiv
+          </span>
+        </a>
       </div>
     </div>
   </header>
